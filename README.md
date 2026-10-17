@@ -1,4 +1,4 @@
-# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation, workload rebalancing
+# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation, workload rebalancing, blocker triage
 
 ## 1. Purpose and scope
 
@@ -24,15 +24,25 @@ Implemented so far:
   rebalancing for a **staffed** scenario (per-resource capacity, unfinished
   effort, overload, and suggested reassignments in abstract `work_units`). No
   time dimension; no delivery dates are predicted.
+- Read-only tool `analyze_blocked_tasks` — **blocker triage (BuildBack)**: after a
+  disruption, one state per entity (`blocked`, `external`, `at_risk`, `healthy`,
+  `done`), a reason and evidence path for each, the parallel work that can still
+  proceed, and the critical path before/after the disruption.
+- A typed dependency graph builder (`rippleback.graph`) with explicit edge types
+  (`requires_completion`, `requires_arrival_by`, `benefits_from`), invalid-
+  reference detection, and **cycle detection**.
+- A longest-path **critical-path** engine (`rippleback.critical_path`).
 - Seeded, deterministic scenario fixtures with validation, including a staffed
-  variant (`demo-release-plan-staffed`) whose resource/effort values are
+  variant (`demo-release-plan-staffed`) and two triage-oriented fixtures
+  (`project-full`, `travel`) whose resource/effort/duration/slack values are
   **synthetic demo data**.
 
 Explicitly **not implemented** (do not assume they exist): substituting a
 dependency with a mock/alternative service, deferring dependent work, committing
 a reassignment, release-date optimization, delivery forecasts, committing
-changes, AI / Amazon Bedrock, scheduling, frontend, and persisting disruptions,
-recovery options, evaluations, or workload rebalances into the plan.
+changes, AI / Amazon Bedrock, calendar scheduling, frontend, and persisting
+disruptions, recovery options, evaluations, or workload rebalances into the plan.
+The critical path is a relative ranking of dependency chains, not a date.
 
 ## 2. Prerequisites
 
@@ -40,6 +50,7 @@ recovery options, evaluations, or workload rebalances into the plan.
 - Official Python MCP SDK **`mcp==2.3.0`**.
   Note: v2.x renamed the v1 `FastMCP` class to `MCPServer`
   (`from mcp.server.mcpserver import MCPServer`). Follow v2 docs, not v1.
+- **`networkx`** (≥ 3.0) for the typed dependency graph and critical path.
 
 ## 3. Environment setup
 
@@ -105,8 +116,10 @@ python -m pytest tests/integration/ -q # MCP integration tests only
 
 Unit tests live in `tests/test_scenarios.py` (fixture + validation),
 `tests/test_impact.py` (disruption impact engine), `tests/test_recovery.py`
-(recovery alternatives), `tests/test_evaluation.py` (proposal evaluation), and
-`tests/test_workload.py` (workload rebalancing).
+(recovery alternatives), `tests/test_evaluation.py` (proposal evaluation),
+`tests/test_workload.py` (workload rebalancing), `tests/test_graph.py` (typed
+graph + cycle detection), `tests/test_critical_path.py` (critical path), and
+`tests/test_triage.py` (blocker triage + recovery view).
 
 The integration test (`tests/integration/test_mcp_server.py`) is a **real,
 non-mocked** end-to-end test: it spawns a live server subprocess and talks to
@@ -494,14 +507,177 @@ in `unresolved` instead. Passing `resource_id` scopes which resource's overload
 is addressed (any resource may still receive work). A scenario without staffing
 data returns `outcome: "insufficient_data"` rather than a silent empty result.
 
-## 13. Unknown scenario IDs and invalid proposals
+## 13. Example `analyze_blocked_tasks` call and response (blocker triage)
+
+Hypothetical and read-only: the committed plan is **not** modified. This is
+BuildBack's headline feature: after a disruption every entity gets exactly one
+state so the team stops only what must stop. Input (tool arguments), using the
+`project-full` triage fixture:
+
+```json
+{
+  "scenario_id": "project-full",
+  "entity_id": "payment-api",
+  "event_type": "service_outage",
+  "reason": "service outage"
+}
+```
+
+Response (actual output, abridged only by whitespace):
+
+```json
+{
+  "scenario_id": "project-full",
+  "plan_id": "plan-payment-api-release-full",
+  "plan_version": 1,
+  "simulated": true,
+  "disruption": {
+    "entity_id": "payment-api",
+    "name": "Payment API service",
+    "event_type": "service_outage",
+    "reason": "service outage",
+    "delay_minutes": null
+  },
+  "states": [
+    {
+      "entity_id": "auth-service",
+      "name": "Auth service",
+      "state": "done",
+      "reason": "'auth-service' is already completed, so the disruption does not re-block it.",
+      "evidence_path": [],
+      "evidence_edges": []
+    },
+    {
+      "entity_id": "payment-api",
+      "name": "Payment API service",
+      "state": "blocked",
+      "reason": "'payment-api' is the disrupted entity; the service outage marks it unavailable.",
+      "evidence_path": ["payment-api"],
+      "evidence_edges": []
+    },
+    {
+      "entity_id": "backend-integration",
+      "name": "Backend integration",
+      "state": "blocked",
+      "reason": "Hard dependency path from 'payment-api' reaches 'backend-integration' and no alternative satisfies it.",
+      "evidence_path": ["payment-api", "backend-integration"],
+      "evidence_edges": [
+        {
+          "dependent": "backend-integration",
+          "prerequisite": "payment-api",
+          "dependency_type": "requires_completion"
+        }
+      ]
+    },
+    {
+      "entity_id": "frontend-integration",
+      "name": "Frontend integration",
+      "state": "healthy",
+      "reason": "No dependency path links 'frontend-integration' to the disruption.",
+      "evidence_path": [],
+      "evidence_edges": []
+    },
+    {
+      "entity_id": "unit-testing",
+      "name": "Unit testing",
+      "state": "at_risk",
+      "reason": "'unit-testing' benefits_from 'integration-testing' but does not require it, so the disruption only adds risk.",
+      "evidence_path": ["integration-testing", "unit-testing"],
+      "evidence_edges": [
+        {
+          "dependent": "unit-testing",
+          "prerequisite": "integration-testing",
+          "dependency_type": "benefits_from"
+        }
+      ]
+    },
+    {
+      "entity_id": "release-notes",
+      "name": "Release notes",
+      "state": "at_risk",
+      "reason": "'release-notes' has only 30 minute(s) of slack, at or below the 60-minute at-risk threshold.",
+      "evidence_path": ["release-notes"],
+      "evidence_edges": []
+    }
+  ],
+  "summary": { "done": 1, "blocked": 5, "external": 0, "at_risk": 2, "healthy": 2 },
+  "parallel_work": [
+    { "entity_id": "vendor-delivery", "name": "Vendor deliverable" },
+    { "entity_id": "frontend-integration", "name": "Frontend integration" },
+    { "entity_id": "unit-testing", "name": "Unit testing" },
+    { "entity_id": "release-notes", "name": "Release notes" }
+  ]
+}
+```
+
+(The example is abridged: `release-validation`, `production-release`, and
+`vendor-delivery` entries, plus the `critical_path`, `critical_path_change`,
+`assumptions`, and `limitations` fields, are omitted here.)
+
+State precedence is `done` > `blocked`/`external` > `at_risk` > `healthy`:
+
+- **`done`** — already completed (`status == "done"`); never re-labelled blocked.
+- **`blocked`** — a hard `requires_*` path leads back to the disrupted entity and
+  the dependent has no slack to absorb the disruption.
+- **`external`** — blocked, but a party on the evidence path is flagged
+  `metadata.external` (outside the team), so the team cannot fix it directly.
+  Trigger a `delivery_delay` on `vendor-delivery` to see this.
+- **`at_risk`** — not blocked, but linked by a soft `benefits_from` edge, or with
+  slack at or below the at-risk threshold (60 minutes; open question).
+- **`healthy`** — no path from the disruption.
+
+`parallel_work` lists everything that can still proceed (`healthy` + `at_risk`),
+which is how the team avoids stopping unnecessarily. `evidence_path` lists the
+entity chain from the disruption to the affected entity and `evidence_edges`
+names each dependency, so 100% of states are traceable.
+
+**Time-aware blockage.** `service_outage` and `resource_unavailable` are
+unbounded: every hard-path entity is blocked. `delivery_delay` and
+`transport_delay` carry `delay_minutes`; a dependent absorbs the delay while its
+`metadata.slack_minutes` lasts, and the delay propagates in topological order, so
+a downstream event is **not** assumed to fail when a buffer absorbs the delay.
+On the `travel` fixture, a 120-minute delay on `leg-1` blocks `transfer` and
+`connecting-leg` but leaves `hotel-check-in` `at_risk` and `meeting` `healthy`.
+
+**Recovery view.** `rippleback.triage.recompute_with_changes(scenario, entity_id,
+changes)` re-runs triage on a modified plan and reports `state_changes`, so a
+change set that removes the broken edge (for example a mock service) shows the
+blocked-to-healthy payoff for Person 3 without ever touching the committed plan.
+
+## 14. Typed dependency graph and critical path
+
+`rippleback.graph.build_graph(scenario)` builds a directed, typed graph
+`G = (V, E)` with NetworkX. Edges run prerequisite → dependent and carry an
+explicit `dependency_type`:
+
+- `requires_completion` (hard) — dependent cannot finish until the prerequisite
+  does.
+- `requires_arrival_by` (hard) — dependent must start after the prerequisite,
+  subject to `constraint_parameters`.
+- `benefits_from` (soft) — only adds risk; never blocks.
+
+Edges without a `dependency_type` default to `requires_completion`, so older
+fixtures keep working. Validation raises `GraphError` with a stable code —
+`ENTITY_NOT_FOUND`, `INVALID_DEPENDENCY`, `INVALID_DEPENDENCY_TYPE`, or
+`CYCLIC_DEPENDENCY` — and `graph_errors()` returns the same faults as coded dicts
+without raising. `validate_scenario()` also detects cycles, so
+`get_plan_state` refuses a cyclic fixture.
+
+`rippleback.critical_path.critical_path(scenario)` returns the longest hard
+dependency chain (`path`, `length`, `unit`, `edges`); it is weighted by entity
+`duration` when present, otherwise counted in steps. `critical_path_changes`
+reports the critical path before the disruption and the longest chain within the
+disruption's impact set. This is a relative ranking of dependency chains, **not**
+a delivery date.
+
+## 15. Unknown scenario IDs and invalid proposals
 
 `scenario_id` is required. An unknown, empty, or malformed id is rejected
 predictably; the call returns `is_error: true` with a clear message. **No
 fallback to another scenario ever occurs.** Verified message text:
 
 ```
-Error executing tool get_plan_state: unknown scenario_id 'no-such-scenario'; available: ['demo-release-plan', 'demo-release-plan-staffed']
+Error executing tool get_plan_state: unknown scenario_id 'no-such-scenario'; available: ['demo-release-plan', 'demo-release-plan-staffed', 'project-full', 'travel']
 ```
 
 `simulate_disruption` also rejects unknown `entity_id` values, an empty
@@ -537,21 +713,40 @@ A scenario without staffing data is **not** an error — it returns
 `outcome: "insufficient_data"` (`is_error: false`) so the absence of data is
 explicit rather than a misleading empty rebalance.
 
+`analyze_blocked_tasks` raises a structured error for an unknown `scenario_id`,
+an unknown `entity_id`, an unsupported `event_type`, and a delay event without a
+positive `delay_minutes`:
+
+```
+Error executing tool analyze_blocked_tasks: unknown entity_id 'ghost'; available: [...]
+Error executing tool analyze_blocked_tasks: unsupported event_type 'meteor'; supported: ['delivery_delay', 'resource_unavailable', 'service_outage', 'transport_delay']
+Error executing tool analyze_blocked_tasks: event_type 'delivery_delay' requires a positive delay_minutes
+```
+
 Internally `get_scenario()` raises `ScenarioError`, the impact engine raises
 `ImpactError`, the recovery engine raises `RecoveryError`, the evaluation engine
-raises `EvaluationError`, and the workload engine raises `WorkloadError`; all are
-converted to the SDK's `ToolError` so the message reaches the model/client.
+raises `EvaluationError`, the workload engine raises `WorkloadError`, `graph.py`
+raises `GraphError`, and `triage.py` raises `TriageError`; all are converted to
+the SDK's `ToolError` so the message reaches the model/client.
 
-## 14. Current limitations / not yet implemented
+## 16. Current limitations / not yet implemented
 
-- **Single scenario**: only `demo-release-plan` and its staffed variant
-  `demo-release-plan-staffed` exist; no dynamic plan loading or editing.
+- **Four fixed scenarios**: `demo-release-plan` and its staffed variant
+  `demo-release-plan-staffed` (which keep the chain `done`), plus the triage
+  fixtures `project-full` (unfinished release chain) and `travel` (delay
+  absorption). No dynamic plan loading or editing.
 - **Healthy committed plan**: `status` is always `healthy` and the committed
-  `disruptions` is always `[]`. Simulation, recovery, evaluation, and workload
-  rebalancing are hypothetical/read-only and are never persisted.
-- **Simplified impact model**: any transitively affected entity is reported as
-  `blocked`, regardless of its committed status (a completed entity can appear
-  as blocked in a simulation). No severity-weighted or partial impact yet.
+  `disruptions` is always `[]`. Every analysis tool (simulation, recovery,
+  evaluation, workload rebalancing, blocker triage) is hypothetical/read-only and
+  is never persisted.
+- **`simulate_disruption` impact model is simplified**: any transitively affected
+  entity is reported as `blocked`, regardless of its committed status (a
+  completed entity can appear as blocked in a simulation). For committed-status-
+  aware, time-aware triage use `analyze_blocked_tasks` instead.
+- **Blocker triage is heuristic**: the at-risk slack threshold (60 minutes) and
+  the hard/soft edge semantics are demo choices; `external` is read from
+  `metadata.external` (no integrations); delay propagation is deterministic
+  topological arithmetic, not a scheduler.
 - **Recovery semantics are narrow**: an "alternative dependency" currently means
   removing the broken edge only. No substitution candidates, effort/cost
   ranking, or multi-step recovery plans.
@@ -569,7 +764,8 @@ converted to the SDK's `ToolError` so the message reaches the model/client.
   delivery forecasts, or committing a recovery/evaluation/rebalance back to the
   plan.
 - **No AI**: no LLM, no Amazon Bedrock, no inference of any kind.
-- **No scheduling**: no critical-path or timeline scheduling.
+- **No scheduling**: the critical path is a dependency-chain ranking, not a
+  timeline; no calendars, working hours, or dates.
 - **No frontend** and no persistence (fixtures are in-process Python dicts).
 - **No auth**: server binds to localhost with no authentication — never expose
   it publicly.
@@ -578,5 +774,6 @@ converted to the SDK's `ToolError` so the message reaches the model/client.
 ## Data contract
 
 See [`docs/data-contract.md`](docs/data-contract.md) for the scenario, entity,
-dependency, disruption-simulation, recovery-alternative, proposal-evaluation, and
-workload-rebalancing schemas and open questions for the team.
+dependency, disruption-simulation, recovery-alternative, proposal-evaluation,
+workload-rebalancing, blocker-triage, and critical-path schemas and open
+questions for the team.

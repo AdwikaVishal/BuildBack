@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Graph: project-full</title>
+<style>
+  body { font-family: sans-serif; margin: 20px; background:#fafafa; }
+  h1 { font-size: 18px; }
+  .legend { font-size: 13px; margin-bottom: 12px; line-height: 1.7; }
+  .legend .box { display: inline-block; width: 14px; height: 14px;
+                 border-radius: 3px; vertical-align: middle; margin-right: 4px;
+                 border: 1px solid #555; }
+  svg { max-width: 100%; height: auto; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "neutral",
+    flowchart: { curve: "basis", nodeSpacing: 45, rankSpacing: 70 } });
+</script>
+</head>
+<body>
+<h1>project-full dependency graph</h1>
+<div class="legend">
+  <b>node fill = committed status:</b>
+  <span class="box" style="background:#d5f5d5"></span>done
+  <span class="box" style="background:#d5e5ff"></span>in_progress
+  <span class="box" style="background:#fff3cd"></span>pending
+  <span class="box" style="background:#ffd6d6"></span>blocked
+  <br/><b>edges:</b> solid arrow = hard dependency &nbsp;|&nbsp;
+  dotted arrow = benefits_from (soft) &nbsp;|&nbsp;
+  arrow direction = prerequisite --> dependent
+</div>
+<pre class="mermaid">
+flowchart TD
+    auth-service["auth-service<br/>(done)<br/>d=2"]:::done
+    backend-integration["backend-integration<br/>(pending)<br/>d=3"]:::pend
+    frontend-integration["frontend-integration<br/>(in_progress)<br/>d=2"]:::prog
+    integration-testing["integration-testing<br/>(pending)<br/>d=2"]:::pend
+    payment-api["payment-api<br/>(in_progress)<br/>d=2"]:::prog
+    production-release["production-release<br/>(pending)<br/>d=1"]:::pend
+    release-notes["release-notes<br/>(pending)<br/>slack 30m, d=1"]:::pend
+    release-validation["release-validation<br/>(pending)<br/>d=1"]:::pend
+    unit-testing["unit-testing<br/>(pending)<br/>d=1"]:::pend
+    vendor-delivery["vendor-delivery<br/>(pending)<br/>EXT, d=1"]:::pend
+    payment-api --> backend-integration
+    vendor-delivery --> backend-integration
+    backend-integration --> integration-testing
+    integration-testing --> release-validation
+    integration-testing -.->|benefits_from| unit-testing
+    release-validation --> production-release
+    classDef done fill:#d5f5d5,stroke:#2e7d32,color:#000;
+    classDef prog fill:#d5e5ff,stroke:#1565c0,color:#000;
+    classDef pend fill:#fff3cd,stroke:#f9a825,color:#000;
+    classDef bld  fill:#ffd6d6,stroke:#c62828,color:#000;
+</pre>
+</body>
+</html>

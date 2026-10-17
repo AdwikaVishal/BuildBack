@@ -26,6 +26,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from rippleback.graph import KNOWN_EDGE_TYPES, detect_cycle
+
 VALID_ENTITY_STATUSES = frozenset({"pending", "in_progress", "done", "blocked"})
 REQUIRED_ENTITY_FIELDS = frozenset({"id", "name", "status"})
 REQUIRED_DEPENDENCY_FIELDS = frozenset({"dependent", "prerequisite"})
@@ -106,9 +108,228 @@ def _demo_release_plan_staffed() -> dict[str, Any]:
     return scenario
 
 
+def _project_full() -> dict[str, Any]:
+    """Extended project scenario for blocker triage (Phase 6).
+
+    Same payment-API chain as ``demo-release-plan`` but seeded with the fields
+    blocker triage needs to demonstrate all five states:
+
+    * ``auth-service`` is ``done`` (independent finished work).
+    * the payment chain is unfinished, so an outage cascades to ``blocked``.
+    * ``frontend-integration`` is independent -> ``healthy``.
+    * ``unit-testing`` ``benefits_from`` ``integration-testing`` (a **soft** edge)
+      -> ``at_risk`` when integration is blocked.
+    * ``release-notes`` has only 30 minutes of slack -> ``at_risk`` by low slack.
+    * ``vendor-delivery`` is ``metadata.external`` (outside the team), so a delay
+      on it makes its dependents ``external``.
+
+    ``duration`` (relative units) and ``resources``/``assignee``/``effort`` are
+    synthetic demo data, not real durations, capacity, or effort.
+    """
+    return {
+        "scenario_id": "project-full",
+        "plan_id": "plan-payment-api-release-full",
+        "version": 1,
+        "status": "healthy",
+        "entities": [
+            {
+                "id": "auth-service",
+                "name": "Auth service",
+                "status": "done",
+                "duration": 2,
+                "assignee": "alice",
+                "effort": 1,
+            },
+            {
+                "id": "payment-api",
+                "name": "Payment API service",
+                "status": "in_progress",
+                "duration": 2,
+                "assignee": "alice",
+                "effort": 2,
+            },
+            {
+                "id": "vendor-delivery",
+                "name": "Vendor deliverable",
+                "status": "pending",
+                "duration": 1,
+                "assignee": "alice",
+                "effort": 1,
+                "metadata": {"external": True},
+            },
+            {
+                "id": "backend-integration",
+                "name": "Backend integration",
+                "status": "pending",
+                "duration": 3,
+                "assignee": "alice",
+                "effort": 2,
+            },
+            {
+                "id": "integration-testing",
+                "name": "Integration testing",
+                "status": "pending",
+                "duration": 2,
+                "assignee": "alice",
+                "effort": 1,
+            },
+            {
+                "id": "release-validation",
+                "name": "Release validation",
+                "status": "pending",
+                "duration": 1,
+                "assignee": "alice",
+                "effort": 3,
+            },
+            {
+                "id": "production-release",
+                "name": "Production release",
+                "status": "pending",
+                "duration": 1,
+                "assignee": "alice",
+                "effort": 1,
+            },
+            {
+                "id": "frontend-integration",
+                "name": "Frontend integration",
+                "status": "in_progress",
+                "duration": 2,
+                "assignee": "bob",
+                "effort": 2,
+            },
+            {
+                "id": "unit-testing",
+                "name": "Unit testing",
+                "status": "pending",
+                "duration": 1,
+                "assignee": "bob",
+                "effort": 1,
+            },
+            {
+                "id": "release-notes",
+                "name": "Release notes",
+                "status": "pending",
+                "duration": 1,
+                "assignee": "bob",
+                "effort": 1,
+                "metadata": {"slack_minutes": 30},
+            },
+        ],
+        "resources": [
+            {"id": "alice", "name": "Alice (synthetic)", "capacity": 3},
+            {"id": "bob", "name": "Bob (synthetic)", "capacity": 3},
+        ],
+        "dependencies": [
+            {"dependent": "backend-integration", "prerequisite": "payment-api"},
+            {"dependent": "backend-integration", "prerequisite": "vendor-delivery"},
+            {"dependent": "integration-testing", "prerequisite": "backend-integration"},
+            {"dependent": "release-validation", "prerequisite": "integration-testing"},
+            {"dependent": "production-release", "prerequisite": "release-validation"},
+            {
+                "dependent": "unit-testing",
+                "prerequisite": "integration-testing",
+                "dependency_type": "benefits_from",
+            },
+        ],
+        "constraints": [
+            {
+                "type": "all_entities_done_before",
+                "entity_ids": ["production-release"],
+                "description": "Every other entity must be done before production-release.",
+            },
+        ],
+    }
+
+
+def _travel() -> dict[str, Any]:
+    """Travel scenario reused on the same engine (Phase 6).
+
+    A delayed first train leg with explicit connection buffers (``slack_minutes``
+    on the dependent) lets the engine show that downstream legs still proceed
+    when a buffer absorbs the delay, instead of assuming every downstream event
+    fails. Dependencies use ``requires_arrival_by``; durations and slack are
+    synthetic demo data.
+    """
+    return {
+        "scenario_id": "travel",
+        "plan_id": "plan-train-connection",
+        "version": 1,
+        "status": "healthy",
+        "entities": [
+            {"id": "origin", "name": "Origin station", "status": "done", "duration": 5},
+            {
+                "id": "leg-1",
+                "name": "Train leg 1",
+                "status": "in_progress",
+                "duration": 120,
+            },
+            {
+                "id": "transfer",
+                "name": "Station transfer",
+                "status": "pending",
+                "duration": 10,
+                "metadata": {"slack_minutes": 30},
+            },
+            {
+                "id": "connecting-leg",
+                "name": "Connecting train",
+                "status": "pending",
+                "duration": 90,
+                "metadata": {"slack_minutes": 20},
+            },
+            {
+                "id": "hotel-check-in",
+                "name": "Hotel check-in",
+                "status": "pending",
+                "duration": 20,
+                "metadata": {"slack_minutes": 90},
+            },
+            {
+                "id": "meeting",
+                "name": "Client meeting",
+                "status": "pending",
+                "duration": 60,
+                "metadata": {"slack_minutes": 120},
+            },
+            {
+                "id": "dinner-reservation",
+                "name": "Dinner reservation",
+                "status": "pending",
+                "duration": 45,
+            },
+        ],
+        "dependencies": [
+            {
+                "dependent": "transfer",
+                "prerequisite": "leg-1",
+                "dependency_type": "requires_arrival_by",
+                "constraint_parameters": {"required_buffer_minutes": 30},
+            },
+            {
+                "dependent": "connecting-leg",
+                "prerequisite": "transfer",
+                "dependency_type": "requires_arrival_by",
+            },
+            {
+                "dependent": "hotel-check-in",
+                "prerequisite": "connecting-leg",
+                "dependency_type": "requires_arrival_by",
+            },
+            {
+                "dependent": "meeting",
+                "prerequisite": "hotel-check-in",
+                "dependency_type": "requires_arrival_by",
+            },
+        ],
+        "constraints": [],
+    }
+
+
 SCENARIOS: dict[str, dict[str, Any]] = {
     "demo-release-plan": _demo_release_plan(),
     "demo-release-plan-staffed": _demo_release_plan_staffed(),
+    "project-full": _project_full(),
+    "travel": _travel(),
 }
 
 
@@ -215,12 +436,25 @@ def validate_scenario(data: Any) -> list[str]:
                     errors.append(
                         f"entities[{i}].effort must be a non-negative integer"
                     )
+            if "duration" in entity:
+                duration = entity["duration"]
+                if (
+                    not isinstance(duration, (int, float))
+                    or isinstance(duration, bool)
+                    or duration <= 0
+                ):
+                    errors.append(
+                        f"entities[{i}].duration must be a positive number"
+                    )
+            if "metadata" in entity and not isinstance(entity["metadata"], dict):
+                errors.append(f"entities[{i}].metadata must be a dict")
 
     dependencies = data["dependencies"]
     if not isinstance(dependencies, list):
         errors.append("dependencies must be a list")
     else:
         seen_pairs: set[tuple[str, str]] = set()
+        cycle_edges: list[tuple[str, str]] = []
         for i, dep in enumerate(dependencies):
             if not isinstance(dep, dict):
                 errors.append(f"dependencies[{i}] must be a dict")
@@ -238,10 +472,24 @@ def validate_scenario(data: Any) -> list[str]:
                     errors.append(f"dependencies[{i}] references unknown entity {ref!r}")
             if dependent == prereq:
                 errors.append(f"dependencies[{i}] is a self-dependency on {dependent!r}")
+            if "dependency_type" in dep and dep["dependency_type"] not in KNOWN_EDGE_TYPES:
+                errors.append(
+                    f"dependencies[{i}].dependency_type {dep['dependency_type']!r} "
+                    f"not in {sorted(KNOWN_EDGE_TYPES)}"
+                )
+            if "constraint_parameters" in dep and not isinstance(
+                dep["constraint_parameters"], dict
+            ):
+                errors.append(f"dependencies[{i}].constraint_parameters must be a dict")
             pair = (dependent, prereq)
             if pair in seen_pairs:
                 errors.append(f"duplicate dependency: {pair}")
             seen_pairs.add(pair)
+            cycle_edges.append((prereq, dependent))
+
+        cycle = detect_cycle(cycle_edges)
+        if cycle is not None:
+            errors.append(f"dependency cycle detected: {' -> '.join(cycle)}")
 
     constraints = data["constraints"]
     if not isinstance(constraints, list):

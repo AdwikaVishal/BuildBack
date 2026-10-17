@@ -5,6 +5,7 @@ description = "RippleBack - AI-powered project disruption and recovery platform 
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=2.0.0,<3",
+    "networkx>=3.0",
 ]
 
 [project.optional-dependencies]

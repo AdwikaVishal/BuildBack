@@ -2,6 +2,7 @@
 # Install: pip install -r requirements.txt
 mcp==2.3.0
 mcp-types==2.3.0
+networkx==3.6.1
 anyio==4.15.1
 httpx2==2.13.1
 jsonschema==4.26.0

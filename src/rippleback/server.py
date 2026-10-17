@@ -1,12 +1,14 @@
 """RippleBack MCP server.
 
-Exposes five read-only tools over the Streamable HTTP transport:
+Exposes six read-only tools over the Streamable HTTP transport:
 
 * ``get_plan_state`` — committed plan state.
 * ``simulate_disruption`` — hypothetical dependency-impact analysis.
 * ``find_alternative_dependencies`` — hypothetical recovery alternatives.
 * ``evaluate_recovery_plan`` — structural evaluation of a recovery proposal.
 * ``rebalance_workload`` — hypothetical reassignment suggestions (staffed plans).
+* ``analyze_blocked_tasks`` — blocker triage: one state per entity plus the work
+  that can still proceed (BuildBack).
 
 No writes yet.
 """
@@ -23,12 +25,15 @@ from rippleback.evaluation import (
     EvaluationError,
     evaluate_recovery_plan as _evaluate,
 )
+from rippleback.graph import GraphError
 from rippleback.impact import ImpactError, simulate_disruption as _simulate
 from rippleback.recovery import (
     RecoveryError,
     find_alternative_dependencies as _find_alternatives,
 )
 from rippleback.scenarios import ScenarioError, get_scenario
+from rippleback.triage import TriageError
+from rippleback.triage import analyze_blocked_tasks as _analyze_blocked
 from rippleback.workload import WorkloadError, rebalance_workload as _rebalance
 
 DEFAULT_HOST = "127.0.0.1"
@@ -41,8 +46,9 @@ mcp = MCPServer(
         "RippleBack project-disruption MCP server. "
         "Exposes plan-state inspection, hypothetical disruption impact, "
         "hypothetical recovery alternatives, structural evaluation of a "
-        "recovery proposal, and hypothetical workload rebalancing for staffed "
-        "plans."
+        "recovery proposal, hypothetical workload rebalancing for staffed "
+        "plans, and blocker triage (which work is blocked, external, at risk, "
+        "healthy, or done, and what can still proceed)."
     ),
 )
 
@@ -210,6 +216,46 @@ def rebalance_workload(
             resource_id=resource_id,
         )
     except (ScenarioError, WorkloadError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="analyze_blocked_tasks",
+    description=(
+        "Blocker triage (BuildBack): after a disruption, assign exactly one "
+        "state to every entity — blocked, external, at_risk, healthy, or done — "
+        "with a reason and an evidence path, and list the parallel work that can "
+        "still proceed. Hard requires_* paths block; benefits_from edges only add "
+        "risk; time delays are absorbed by entity slack so downstream work is not "
+        "assumed to fail. Also reports the critical path and how the disruption "
+        "changes it. Read-only: the committed plan is never modified. Unknown "
+        "scenario/entity ids and invalid events return a structured error."
+    ),
+)
+def analyze_blocked_tasks(
+    scenario_id: str,
+    entity_id: str,
+    event_type: str = "service_outage",
+    reason: str | None = None,
+    delay_minutes: float | None = None,
+) -> dict[str, Any]:
+    """Return one triage state per entity plus the work that can still proceed.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios/entities, unknown event
+    types, missing delay parameters, and malformed graphs so the client receives
+    a clear, structured error.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        parameters = None if delay_minutes is None else {"delay_minutes": delay_minutes}
+        return _analyze_blocked(
+            scenario,
+            entity_id=entity_id,
+            event_type=event_type,
+            reason=reason,
+            parameters=parameters,
+        )
+    except (ScenarioError, TriageError, GraphError) as exc:
         raise ToolError(str(exc)) from exc
 
 

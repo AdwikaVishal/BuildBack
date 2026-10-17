@@ -73,8 +73,8 @@ def server_url() -> Iterator[str]:
     proc = subprocess.Popen(
         [sys.executable, "-m", "rippleback.server"],
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     try:
         _wait_until_listening(host, port)
@@ -520,6 +520,133 @@ async def test_rebalance_workload_does_not_mutate_plan(server_url: str) -> None:
             )
             after = await session.call_tool(
                 "get_plan_state", {"scenario_id": STAFFED_SCENARIO_ID}
+            )
+            committed = json.loads(after.content[0].text)
+            assert committed == baseline
+            assert committed["version"] == 1
+
+
+PROJECT_FULL_SCENARIO_ID = "project-full"
+TRAVEL_SCENARIO_ID = "travel"
+
+
+async def test_analyze_blocked_tasks_is_discoverable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.list_tools()
+            tool_names = {tool.name for tool in result.tools}
+            assert {
+                "get_plan_state",
+                "simulate_disruption",
+                "find_alternative_dependencies",
+                "evaluate_recovery_plan",
+                "rebalance_workload",
+                "analyze_blocked_tasks",
+            } <= tool_names
+
+
+async def test_analyze_blocked_tasks_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "analyze_blocked_tasks",
+                {
+                    "scenario_id": PROJECT_FULL_SCENARIO_ID,
+                    "entity_id": "payment-api",
+                    "event_type": "service_outage",
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+
+            assert report["simulated"] is True
+            assert report["plan_version"] == 1
+            states = {entry["entity_id"]: entry["state"] for entry in report["states"]}
+            assert len(report["states"]) == 10
+            assert states["payment-api"] == "blocked"
+            assert states["auth-service"] == "done"
+            assert states["frontend-integration"] == "healthy"
+            assert states["unit-testing"] == "at_risk"
+            parallel = {entry["entity_id"] for entry in report["parallel_work"]}
+            assert "frontend-integration" in parallel
+            assert "production-release" not in parallel
+
+
+async def test_analyze_blocked_tasks_external_delay(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "analyze_blocked_tasks",
+                {
+                    "scenario_id": PROJECT_FULL_SCENARIO_ID,
+                    "entity_id": "vendor-delivery",
+                    "event_type": "delivery_delay",
+                    "delay_minutes": 480,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            states = {entry["entity_id"]: entry["state"] for entry in report["states"]}
+            assert states["vendor-delivery"] == "external"
+            assert states["backend-integration"] == "external"
+
+
+async def test_analyze_blocked_tasks_travel_delay_absorbs(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "analyze_blocked_tasks",
+                {
+                    "scenario_id": TRAVEL_SCENARIO_ID,
+                    "entity_id": "leg-1",
+                    "event_type": "transport_delay",
+                    "delay_minutes": 120,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            states = {entry["entity_id"]: entry["state"] for entry in report["states"]}
+            assert states["connecting-leg"] == "blocked"
+            assert states["hotel-check-in"] == "at_risk"
+            assert states["meeting"] == "healthy"
+
+
+async def test_analyze_blocked_tasks_unknown_entity_returns_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "analyze_blocked_tasks",
+                {"scenario_id": PROJECT_FULL_SCENARIO_ID, "entity_id": "no-such-entity"},
+            )
+            assert result.is_error is True
+            text = result.content[0].text if result.content else ""
+            assert "unknown entity_id" in text
+
+
+async def test_analyze_blocked_tasks_does_not_mutate_plan(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            before = await session.call_tool(
+                "get_plan_state", {"scenario_id": PROJECT_FULL_SCENARIO_ID}
+            )
+            baseline = json.loads(before.content[0].text)
+            await session.call_tool(
+                "analyze_blocked_tasks",
+                {
+                    "scenario_id": PROJECT_FULL_SCENARIO_ID,
+                    "entity_id": "payment-api",
+                },
+            )
+            after = await session.call_tool(
+                "get_plan_state", {"scenario_id": PROJECT_FULL_SCENARIO_ID}
             )
             committed = json.loads(after.content[0].text)
             assert committed == baseline

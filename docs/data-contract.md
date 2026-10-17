@@ -2,17 +2,21 @@
 
 Source of truth: `src/rippleback/scenarios.py` (plan data), `src/rippleback/impact.py`
 (disruption simulation), `src/rippleback/recovery.py` (recovery alternatives),
-`src/rippleback/evaluation.py` (recovery-proposal evaluation), and
-`src/rippleback/workload.py` (workload rebalancing). Plan validation is
+`src/rippleback/evaluation.py` (recovery-proposal evaluation),
+`src/rippleback/workload.py` (workload rebalancing), `src/rippleback/graph.py`
+(typed dependency graph), `src/rippleback/critical_path.py` (critical path), and
+`src/rippleback/triage.py` (blocker triage). Plan validation is
 enforced by `validate_scenario()` at fixture definition/lookup time and surfaced
 through `get_plan_state`.
 
 Phase 1 defined the plan schema (§1–§3). Phase 2 added hypothetical disruption
 simulation (§4). Phase 3 added hypothetical recovery alternatives (§5). Phase 4
 adds structural evaluation of a recovery proposal (§6). Phase 5 adds hypothetical
-workload rebalancing for staffed scenarios (§7). All of §4–§7 are read-only and
-return separate result objects; §7 also adds optional plan fields (`resources`,
-entity `assignee`/`effort`) but does not change any required field.
+workload rebalancing for staffed scenarios (§7). Phase 6 adds blocker triage (§8) and the typed dependency graph + critical path
+(§9). All of §4–§9 are read-only and return separate result objects. §7 adds
+optional plan fields (`resources`, entity `assignee`/`effort`) and §9 adds
+optional graph fields (entity `duration`/`metadata`, dependency `dependency_type`,
+constraint `parameters`) but does not change any required field.
 
 Status: **proposed for team review.** Fields marked **OPEN** need a decision —
 see [Open questions](#open-questions).
@@ -74,6 +78,8 @@ state. It does **not** describe ordering — that is a dependency.
 | `status` | enum: `pending` \| `in_progress` \| `done` \| `blocked` | yes | `"done"` |
 | `assignee` | resource id (Phase 5, optional) | no | `"alice"` |
 | `effort` | non-negative integer, abstract `work_units` (Phase 5, optional) | no | `3` |
+| `duration` | positive number, relative units (Phase 6, optional) | no | `2` |
+| `metadata` | object (Phase 6, optional) | no | see below |
 
 Example:
 
@@ -86,6 +92,13 @@ workload rebalancing (§7) only when **both** are present and `assignee` names a
 declared resource. When present, `assignee` must reference an existing
 `resources[].id` and `effort` must be a non-negative integer (`bool` excluded).
 
+`duration` and `metadata` are optional Phase 6 fields (both validated):
+`duration` must be a positive number (`bool` excluded); `metadata` must be an
+object. Recognized `metadata` keys: `external` (a real `true` flags the entity as
+owned outside the team — see the `external` state in §8) and `slack_minutes`
+(a non-negative number of buffer minutes used by delay-absorption and the
+at-risk threshold in §8). Unknown keys are allowed and ignored.
+
 ---
 
 ## 3. Dependency schema
@@ -97,6 +110,8 @@ of its own; it only expresses ordering.
 |-------|------|----------|---------|
 | `dependent` | entity id of the work that needs the other first | yes | `"backend-integration"` |
 | `prerequisite` | entity id of the work that must come first | yes | `"payment-api"` |
+| `dependency_type` | enum: `requires_completion` \| `requires_arrival_by` \| `benefits_from` (Phase 6, optional) | no | `"requires_completion"` |
+| `constraint_parameters` | object (Phase 6, optional) | no | `{"required_buffer_minutes": 30}` |
 
 Example:
 
@@ -109,6 +124,24 @@ Rules (enforced by `validate_scenario()`):
 - Both values must reference an existing entity id in the same scenario.
 - Self-dependency (`dependent == prerequisite`) is rejected.
 - Duplicate `(dependent, prerequisite)` pairs are rejected.
+- `dependency_type`, when present, must be one of the three values above.
+- `constraint_parameters`, when present, must be an object.
+- The graph must be **acyclic** over hard edges (Phase 6, §9); a cycle is
+  rejected with `CYCLIC_DEPENDENCY`.
+
+### Edge types (Phase 6)
+
+`dependency_type` classifies the edge:
+
+- **`requires_completion`** (hard) — the dependent cannot finish before the
+  prerequisite does. This is the default when `dependency_type` is absent, so
+  Phase 1–5 fixtures keep working.
+- **`requires_arrival_by`** (hard) — sequencing with a required buffer; may carry
+  `constraint_parameters` such as `required_buffer_minutes`. Treated as hard for
+  blocking (§8) and critical-path (§9) purposes.
+- **`benefits_from`** (soft) — the dependent does not require the prerequisite;
+  the edge only adds **risk** (never blocks). An affected soft successor becomes
+  `at_risk`, not `blocked` (§8).
 
 ### Dependency direction (normative)
 
@@ -572,7 +605,149 @@ Example (verified, abridged only by whitespace) is in the
 
 ---
 
-## Stable IDs
+## 8. Blocker triage schema (Phase 6)
+
+Operation:
+`analyze_blocked_tasks(scenario_id, entity_id, event_type="service_outage", reason=None, delay_minutes=None)`.
+Hypothetical and deterministic: the committed plan, its entities, dependencies,
+and `version` are never modified.
+
+### Triage input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"project-full"` |
+| `entity_id` | existing entity id (the disrupted target) | yes | `"payment-api"` |
+| `event_type` | enum: `service_outage` \| `resource_unavailable` \| `delivery_delay` \| `transport_delay` (default `service_outage`) | no | `"service_outage"` |
+| `reason` | non-empty string | no | `"service outage"` |
+| `delay_minutes` | positive number; **required** for `delivery_delay`/`transport_delay` | conditional | `120` |
+
+Event types: `service_outage` and `resource_unavailable` are **unbounded** — every
+hard-reachable entity is blocked. `delivery_delay` and `transport_delay` carry a
+`delay_minutes` value that propagates in topological order and can be **absorbed**
+by downstream `metadata.slack_minutes` (see rules).
+
+### Triage result
+
+| Field | Type | Example |
+|-------|------|---------|
+| `scenario_id` / `plan_id` | echoed from the scenario | `"project-full"` |
+| `plan_version` | committed version, unchanged | `1` |
+| `simulated` | always `true` | `true` |
+| `disruption` | `{entity_id, name, event_type, reason, delay_minutes}` | see below |
+| `states` | one entry per entity (see below) | see below |
+| `summary` | count per state: `{done, blocked, external, at_risk, healthy}` | see below |
+| `parallel_work` | `{entity_id, name}` for every non-blocked, non-done entity | see below |
+| `critical_path` | critical path object (§9) | see §9 |
+| `critical_path_change` | critical-path-change object (§9) | see §9 |
+| `assumptions` | list of strings | see below |
+| `limitations` | list of strings | see below |
+
+Each **state** entry:
+
+| Field | Type | Example |
+|-------|------|---------|
+| `entity_id` | string | `"backend-integration"` |
+| `name` | string | `"Backend integration"` |
+| `state` | enum: `done` \| `blocked` \| `external` \| `at_risk` \| `healthy` | `"blocked"` |
+| `reason` | human-readable rationale | `"Hard dependency path from 'payment-api' reaches ..."` |
+| `evidence_path` | list of entity ids from the disruption to this entity (empty for `done`/`healthy`) | `["payment-api", "backend-integration"]` |
+| `evidence_edges` | list of `{dependent, prerequisite, dependency_type}` connecting the path | see below |
+
+### State semantics (normative)
+
+Precedence for the single state: **`done` > `blocked`/`external` > `at_risk` >
+`healthy`**.
+
+- **`done`** — committed `status == "done"`. Reported `done` and never re-labelled
+  blocked. A `done` entity does **not** stop propagation: downstream blockers
+  still propagate through it (its completion is not treated as a buffer).
+- **`blocked`** — a hard (`requires_completion` / `requires_arrival_by`) path
+  leads from the disrupted target to this entity. The disrupted target itself is
+  always `blocked` (or `external`), overriding its committed status.
+- **`external`** — `blocked`, but at least one entity on the evidence path is
+  flagged `metadata.external`, i.e. the blocker is outside the team's control.
+- **`at_risk`** — not blocked, but: it is a soft (`benefits_from`) successor of
+  something on the disruption path, **or** a delay reaches it but is absorbed by
+  its slack (see below), **or** its declared `metadata.slack_minutes` is at or
+  below the at-risk threshold.
+- **`healthy`** — no dependency path links it to the disruption.
+
+**Delay absorption** (`delivery_delay` / `transport_delay`): the delay
+propagates along hard edges. At each node the arriving delay minus that node's
+`metadata.slack_minutes` (`0` when unset) is passed on; the node is blocked only
+while the arriving delay **exceeds** its slack. A node that receives a delay but
+absorbs it becomes `at_risk`, and a downstream node reached only through an
+absorbing buffer is **not** assumed to fail.
+
+**At-risk threshold.** A declared `slack_minutes` at or below the fixed
+`AT_RISK_SLACK_MINUTES = 60.0` minutes makes the entity `at_risk`.
+
+Example (verified, abridged only by whitespace) is in the
+[README §13](../README.md#13-example-analyze_blocked_tasks-call-and-response-blocker-triage).
+
+### Recovery view (`recompute_with_changes`)
+
+`rippleback.triage.recompute_with_changes(scenario, entity_id, changes, ...)`
+re-runs triage on an in-memory modified plan and adds a top-level `state_changes`
+list (`{entity_id, from, to}`). `changes` is a list of operations that
+`apply_changes` applies to a copy: removing a dependency, adding a dependency, or
+replacing the dependency list. This is how a Person 3 recovery option (e.g.
+removing the broken edge) is shown to unblock work, **without** touching the
+committed plan or `version`.
+
+### Errors
+
+- Unknown `scenario_id` / `entity_id` → `unknown ...; available: [...]`.
+- Unsupported `event_type` → `unsupported event_type '<v>'; supported: [...]`.
+- `delivery_delay`/`transport_delay` without a positive `delay_minutes` →
+  `event_type '<v>' requires a positive delay_minutes` (code
+  `INVALID_DISRUPTION`).
+- A malformed/cyclic graph → `GraphError` code (§9).
+
+All are returned as a structured tool error (`is_error: true`); no fallback.
+
+---
+
+## 9. Typed dependency graph and critical path (Phase 6)
+
+### Graph
+
+`rippleback.graph.build_graph(scenario)` builds a directed, typed NetworkX graph
+`G = (V, E)`, edges prerequisite → dependent. Node attributes: `name`, `status`,
+`duration`, `external`, `slack_minutes`, `metadata`. Edge attributes:
+`dependency_type`, `hard`, `constraint_parameters`.
+
+Validation raises `GraphError(code, message)` with one of the stable codes:
+
+| Code | Meaning |
+|------|---------|
+| `ENTITY_NOT_FOUND` | an edge references an unknown entity id |
+| `INVALID_DEPENDENCY` | a self-dependency or a malformed edge |
+| `INVALID_DEPENDENCY_TYPE` | an unknown `dependency_type` |
+| `CYCLIC_DEPENDENCY` | a cycle over hard edges |
+
+`graph_errors(scenario)` returns the same faults as coded dicts without raising;
+`validate_scenario()` also runs cycle detection so `get_plan_state` refuses a
+cyclic fixture.
+
+### Critical path
+
+`rippleback.critical_path.critical_path(scenario)` returns:
+
+| Field | Type | Example |
+|-------|------|---------|
+| `path` | list of entity ids, longest hard chain | `["payment-api", "backend-integration", ...]` |
+| `length` | sum of node durations, or number of steps | `10` |
+| `unit` | `"duration_units"` when any entity declares `duration`, else `"steps"` | `"duration_units"` |
+| `edges` | the `{dependent, prerequisite, dependency_type}` chain | see below |
+
+`critical_path_changes(scenario, entity_id)` compares the baseline critical path
+with the longest hard chain inside the disruption's impact set, and reports the
+disrupted entity and whether it is external. The `length` is a **relative
+ranking** of dependency chains, never a delivery date or a duration forecast.
+
+---
 
 - Entity `id` values are the stable identifiers; `name` is display-only and
   may change.
@@ -594,8 +769,7 @@ reported as a malformed-scenario error by `get_scenario()`. Wrongly typed
 `resources`/`assignee`/`effort` values are likewise rejected.
 
 Unknown `scenario_id` at tool time → `is_error: true`, message:
-`unknown scenario_id '<id>'; available: ['demo-release-plan', 'demo-release-plan-staffed']`
-(no fallback).
+`unknown scenario_id '<id>'; available: ['demo-release-plan', 'demo-release-plan-staffed', 'project-full', 'travel']`
 
 ---
 
@@ -636,11 +810,19 @@ Unknown `scenario_id` at tool time → `is_error: true`, message:
     substitute/defer field on entities), or stay a human decision? Is reusing
     `option_id` as the proposal handle acceptable, or should proposals pass
     `{dependent, prerequisite}` explicitly?
-11. **Workload / capacity model (Phase 5)** — is a flat scenario-level
-    `resources` list with per-entity `assignee`/`effort` the right minimal model?
-    Should `effort` be integer `work_units` or carry a unit/duration? Should stale
-    `expected_plan_version` be an **error** (current §7) or a `rejected`-style
-    report (as in §6)? Is greedy scenario-order placement acceptable, or do we
-    need a globally optimal assignment? Do we need per-entity skills/roles,
-    availability windows, or partial moves? Is the `insufficient_data` outcome the
-    right way to signal a non-staffed scenario?
+ 11. **Workload / capacity model (Phase 5)** — is a flat scenario-level
+     `resources` list with per-entity `assignee`/`effort` the right minimal model?
+     Should `effort` be integer `work_units` or carry a unit/duration? Should stale
+     `expected_plan_version` be an **error** (current §7) or a `rejected`-style
+     report (as in §6)? Is greedy scenario-order placement acceptable, or do we
+     need a globally optimal assignment? Do we need per-entity skills/roles,
+     availability windows, or partial moves? Is the `insufficient_data` outcome the
+     right way to signal a non-staffed scenario?
+12. **Cycle detection and graph types (Phase 6)** — are `CYCLIC_DEPENDENCY` and
+     edge types (`requires_completion`/`requires_arrival_by`/`benefits_from`)
+     sufficient? Should `requires_arrival_by` gain a typed `constraint_parameters`
+     schema (currently freeform dict)?
+13. **Blocker triage (Phase 6)** — is the 60-minute at-risk slack threshold
+     correct? Should done entities ever block downstream (current: they do not stop
+     propagation)? Is `metadata.external` the right flag for "outside the team"? Are
+     event types sufficient, or should `severity` influence delay absorption?
