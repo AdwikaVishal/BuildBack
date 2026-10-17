@@ -8,9 +8,14 @@ Concepts
   stored as ``{"dependent": <entity that needs work done>, "prerequisite":
   <entity that must come first>}``. Example: ``backend-integration`` depends
   on ``payment-api`` (payment-api is *required by* backend-integration).
+- **Resource** (optional): a synthetic work performer with a non-negative
+  integer ``capacity`` in abstract ``work_units``. An entity may name an
+  ``assignee`` (a resource id) and an integer ``effort`` (also ``work_units``).
 
 Constraints are simple, declarative rules about the plan. Phase 2 scenarios
-are healthy: status ``healthy``, no disruptions.
+are healthy: status ``healthy``, no disruptions. Resource/assignment data is
+optional; only ``demo-release-plan-staffed`` carries it, and its values are
+synthetic demo data, not real capacity.
 
 This module is the single source of truth for seeded scenarios; the MCP tool
 in :mod:`rippleback.server` only reads from it.
@@ -25,6 +30,7 @@ VALID_ENTITY_STATUSES = frozenset({"pending", "in_progress", "done", "blocked"})
 REQUIRED_ENTITY_FIELDS = frozenset({"id", "name", "status"})
 REQUIRED_DEPENDENCY_FIELDS = frozenset({"dependent", "prerequisite"})
 REQUIRED_CONSTRAINT_FIELDS = frozenset({"type", "entity_ids"})
+REQUIRED_RESOURCE_FIELDS = frozenset({"id", "name", "capacity"})
 REQUIRED_SCENARIO_FIELDS = frozenset(
     {"scenario_id", "plan_id", "version", "entities", "dependencies", "constraints"}
 )
@@ -65,8 +71,44 @@ def _demo_release_plan() -> dict[str, Any]:
     }
 
 
+def _demo_release_plan_staffed() -> dict[str, Any]:
+    """Staffed variant of the demo release plan (Phase 5, synthetic demo data).
+
+    The same entities and dependencies as ``demo-release-plan``, plus an explicit
+    ``resources`` list and per-entity ``assignee``/``effort`` values. **All
+    numbers are synthetic demo values in an abstract ``work_units`` scale — they
+    are not real team capacity, effort, or availability.**
+
+    Chosen values (capacity and effort in ``work_units``):
+    - ``alice`` (capacity 3) is assigned the finished payment-chain work plus the
+      unfinished ``release-validation`` (3) and ``production-release`` (1) — an
+      unfinished load of 4 > 3, so Alice is **overloaded** by 1 unit.
+    - ``bob`` (capacity 3) is assigned ``frontend-integration`` (2), leaving 1
+      unit free — enough to accept ``production-release`` (1).
+    """
+    scenario = _demo_release_plan()
+    scenario["scenario_id"] = "demo-release-plan-staffed"
+    scenario["plan_id"] = "plan-payment-api-release-staffed"
+    scenario["resources"] = [
+        {"id": "alice", "name": "Alice (synthetic)", "capacity": 3},
+        {"id": "bob", "name": "Bob (synthetic)", "capacity": 3},
+    ]
+    assignee_by_id = {
+        "payment-api": ("alice", 2),
+        "backend-integration": ("alice", 2),
+        "integration-testing": ("alice", 1),
+        "frontend-integration": ("bob", 2),
+        "release-validation": ("alice", 3),
+        "production-release": ("alice", 1),
+    }
+    for entity in scenario["entities"]:
+        entity["assignee"], entity["effort"] = assignee_by_id[entity["id"]]
+    return scenario
+
+
 SCENARIOS: dict[str, dict[str, Any]] = {
     "demo-release-plan": _demo_release_plan(),
+    "demo-release-plan-staffed": _demo_release_plan_staffed(),
 }
 
 
@@ -87,6 +129,44 @@ def validate_scenario(data: Any) -> list[str]:
         errors.append("plan_id must be a non-empty string")
     if not isinstance(data["version"], int) or isinstance(data["version"], bool):
         errors.append("version must be an integer")
+
+    resources = data.get("resources")
+    resource_ids: set[str] = set()
+    if resources is not None:
+        if not isinstance(resources, list):
+            errors.append("resources must be a list")
+        else:
+            for i, resource in enumerate(resources):
+                if not isinstance(resource, dict):
+                    errors.append(f"resources[{i}] must be a dict")
+                    continue
+                missing_resource = REQUIRED_RESOURCE_FIELDS - resource.keys()
+                if missing_resource:
+                    errors.append(
+                        f"resources[{i}] missing fields: {sorted(missing_resource)}"
+                    )
+                    continue
+                rid = resource["id"]
+                if not isinstance(rid, str) or not rid.strip():
+                    errors.append(f"resources[{i}].id must be a non-empty string")
+                    continue
+                if rid in resource_ids:
+                    errors.append(f"duplicate resource id: {rid!r}")
+                resource_ids.add(rid)
+                if (
+                    not isinstance(resource["name"], str)
+                    or not resource["name"].strip()
+                ):
+                    errors.append(f"resources[{i}].name must be a non-empty string")
+                capacity = resource["capacity"]
+                if (
+                    not isinstance(capacity, int)
+                    or isinstance(capacity, bool)
+                    or capacity < 0
+                ):
+                    errors.append(
+                        f"resources[{i}].capacity must be a non-negative integer"
+                    )
 
     entities = data["entities"]
     if not isinstance(entities, list) or not entities:
@@ -114,6 +194,27 @@ def validate_scenario(data: Any) -> list[str]:
                     f"entities[{i}].status {entity['status']!r} "
                     f"not in {sorted(VALID_ENTITY_STATUSES)}"
                 )
+            if "assignee" in entity:
+                assignee = entity["assignee"]
+                if not isinstance(assignee, str) or not assignee.strip():
+                    errors.append(
+                        f"entities[{i}].assignee must be a non-empty string"
+                    )
+                elif assignee not in resource_ids:
+                    errors.append(
+                        f"entities[{i}].assignee references unknown resource "
+                        f"{assignee!r}"
+                    )
+            if "effort" in entity:
+                effort = entity["effort"]
+                if (
+                    not isinstance(effort, int)
+                    or isinstance(effort, bool)
+                    or effort < 0
+                ):
+                    errors.append(
+                        f"entities[{i}].effort must be a non-negative integer"
+                    )
 
     dependencies = data["dependencies"]
     if not isinstance(dependencies, list):

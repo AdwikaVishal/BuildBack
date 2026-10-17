@@ -410,3 +410,117 @@ async def test_evaluate_recovery_plan_does_not_mutate_plan(server_url: str) -> N
             assert committed["version"] == 1
             assert committed["disruptions"] == []
             assert len(committed["dependencies"]) == 4
+
+
+STAFFED_SCENARIO_ID = "demo-release-plan-staffed"
+
+
+async def test_rebalance_workload_is_discoverable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.list_tools()
+            tool_names = {tool.name for tool in result.tools}
+            assert {
+                "get_plan_state",
+                "simulate_disruption",
+                "find_alternative_dependencies",
+                "evaluate_recovery_plan",
+                "rebalance_workload",
+            } <= tool_names
+
+
+async def test_rebalance_workload_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "rebalance_workload",
+                {
+                    "scenario_id": STAFFED_SCENARIO_ID,
+                    "expected_plan_version": 1,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+
+            assert report["outcome"] == "ok"
+            assert report["simulated"] is True
+            assert report["unit"] == "work_units"
+            assert report["plan_version"] == 1
+            suggestions = report["suggestions"]
+            assert len(suggestions) == 1
+            assert suggestions[0]["suggestion_id"] == "rebalance:production-release->bob"
+            assert suggestions[0]["from_resource_id"] == "alice"
+            assert suggestions[0]["to_resource_id"] == "bob"
+            by_id = {r["resource_id"]: r for r in report["resources"]}
+            assert by_id["alice"]["overloaded"] is True
+            assert by_id["bob"]["overloaded"] is False
+
+
+async def test_rebalance_workload_insufficient_data(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "rebalance_workload",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "expected_plan_version": 1,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["outcome"] == "insufficient_data"
+            assert report["suggestions"] == []
+
+
+async def test_rebalance_workload_invalid_inputs_return_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            unknown = await session.call_tool(
+                "rebalance_workload",
+                {
+                    "scenario_id": STAFFED_SCENARIO_ID,
+                    "expected_plan_version": 1,
+                    "resource_id": "no-such-resource",
+                },
+            )
+            assert unknown.is_error is True
+            assert "unknown resource_id" in unknown.content[0].text
+
+            stale = await session.call_tool(
+                "rebalance_workload",
+                {
+                    "scenario_id": STAFFED_SCENARIO_ID,
+                    "expected_plan_version": 99,
+                },
+            )
+            assert stale.is_error is True
+            assert "stale expected_plan_version" in stale.content[0].text
+
+
+async def test_rebalance_workload_does_not_mutate_plan(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            before = await session.call_tool(
+                "get_plan_state", {"scenario_id": STAFFED_SCENARIO_ID}
+            )
+            baseline = json.loads(before.content[0].text)
+            await session.call_tool(
+                "rebalance_workload",
+                {
+                    "scenario_id": STAFFED_SCENARIO_ID,
+                    "expected_plan_version": 1,
+                },
+            )
+            after = await session.call_tool(
+                "get_plan_state", {"scenario_id": STAFFED_SCENARIO_ID}
+            )
+            committed = json.loads(after.content[0].text)
+            assert committed == baseline
+            assert committed["version"] == 1

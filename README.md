@@ -1,4 +1,4 @@
-# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation
+# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation, workload rebalancing
 
 ## 1. Purpose and scope
 
@@ -20,13 +20,19 @@ Implemented so far:
 - Read-only tool `evaluate_recovery_plan` — deterministic, structural evaluation
   of a recovery proposal (verdict, findings, residual-graph impact). Structural
   only — business readiness is explicitly not assessed.
-- A seeded, deterministic scenario fixture with validation.
+- Read-only tool `rebalance_workload` — deterministic, hypothetical staffing
+  rebalancing for a **staffed** scenario (per-resource capacity, unfinished
+  effort, overload, and suggested reassignments in abstract `work_units`). No
+  time dimension; no delivery dates are predicted.
+- Seeded, deterministic scenario fixtures with validation, including a staffed
+  variant (`demo-release-plan-staffed`) whose resource/effort values are
+  **synthetic demo data**.
 
 Explicitly **not implemented** (do not assume they exist): substituting a
-dependency with a mock/alternative service, deferring dependent work, task
-reassignment, release-date optimization, delivery forecasts, committing changes,
-AI / Amazon Bedrock, scheduling, frontend, and persisting disruptions, recovery
-options, or evaluations into the plan.
+dependency with a mock/alternative service, deferring dependent work, committing
+a reassignment, release-date optimization, delivery forecasts, committing
+changes, AI / Amazon Bedrock, scheduling, frontend, and persisting disruptions,
+recovery options, evaluations, or workload rebalances into the plan.
 
 ## 2. Prerequisites
 
@@ -99,7 +105,8 @@ python -m pytest tests/integration/ -q # MCP integration tests only
 
 Unit tests live in `tests/test_scenarios.py` (fixture + validation),
 `tests/test_impact.py` (disruption impact engine), `tests/test_recovery.py`
-(recovery alternatives), and `tests/test_evaluation.py` (proposal evaluation).
+(recovery alternatives), `tests/test_evaluation.py` (proposal evaluation), and
+`tests/test_workload.py` (workload rebalancing).
 
 The integration test (`tests/integration/test_mcp_server.py`) is a **real,
 non-mocked** end-to-end test: it spawns a live server subprocess and talks to
@@ -403,14 +410,98 @@ does not mark a dependent ready while another prerequisite is still blocked.
 Proposals that fail a structural check (stale version, unknown entity, missing
 edge) return `verdict: "rejected"` with `impact: null`.
 
-## 12. Unknown scenario IDs and invalid proposals
+## 12. Example `rebalance_workload` call and response
+
+Read-only and hypothetical: the committed plan is **not** modified. Requires a
+**staffed** scenario (one that declares `resources` and per-entity
+`assignee`/`effort`). Input (tool arguments):
+
+```json
+{
+  "scenario_id": "demo-release-plan-staffed",
+  "expected_plan_version": 1
+}
+```
+
+Response (actual output, abridged only by whitespace):
+
+```json
+{
+  "scenario_id": "demo-release-plan-staffed",
+  "plan_id": "plan-payment-api-release-staffed",
+  "plan_version": 1,
+  "expected_plan_version": 1,
+  "simulated": true,
+  "unit": "work_units",
+  "outcome": "ok",
+  "resources": [
+    {
+      "resource_id": "alice",
+      "name": "Alice (synthetic)",
+      "capacity": 3,
+      "assigned_effort": 4,
+      "free_capacity": -1,
+      "overloaded": true,
+      "assigned_entity_ids": ["release-validation", "production-release"]
+    },
+    {
+      "resource_id": "bob",
+      "name": "Bob (synthetic)",
+      "capacity": 3,
+      "assigned_effort": 2,
+      "free_capacity": 1,
+      "overloaded": false,
+      "assigned_entity_ids": ["frontend-integration"]
+    }
+  ],
+  "suggestions": [
+    {
+      "suggestion_id": "rebalance:production-release->bob",
+      "entity_id": "production-release",
+      "effort": 1,
+      "from_resource_id": "alice",
+      "to_resource_id": "bob",
+      "reason": "Resource 'alice' is over capacity (4 > 3 work_units); 'production-release' (1 work_units) is reassigned to 'bob', which has 1 work_units free.",
+      "assumptions": [
+        "Assumes resource 'bob' can accept 'production-release'; skills and availability are not modeled."
+      ],
+      "limitations": [
+        "Hypothetical only; committed assignments are not changed.",
+        "Does not assert any deadline or delivery date improves."
+      ]
+    }
+  ],
+  "unresolved": [],
+  "assumptions": [
+    "Capacity and effort use an abstract 'work_units' scale with no time dimension; no durations or schedules are modeled.",
+    "Any resource is assumed able to perform any task; skills, roles, and availability are not modeled."
+  ],
+  "limitations": [
+    "Suggestions are greedy in scenario order and may relocate more effort than the strict minimum needed to clear an overload.",
+    "Does not predict or claim any delivery date, deadline, or forecast improvement.",
+    "Read-only: committed assignments, dependencies, statuses, and the plan version are never changed.",
+    "Synthetic demo data; not real team capacity, effort, or availability."
+  ]
+}
+```
+
+Only **unfinished** work (`pending`/`in_progress`/`blocked`) counts toward a
+resource's load; `done` work is excluded. `overloaded` is `true` when unfinished
+assigned effort exceeds capacity. Suggestions use stable ids
+(`rebalance:{entity_id}->{resource_id}`) and are greedy in scenario order. When
+no resource has enough free capacity, the task stays on its resource and appears
+in `unresolved` instead. Passing `resource_id` scopes which resource's overload
+is addressed (any resource may still receive work). A scenario without staffing
+data returns `outcome: "insufficient_data"` rather than a silent empty result.
+
+## 13. Unknown scenario IDs and invalid proposals
 
 `scenario_id` is required. An unknown, empty, or malformed id is rejected
 predictably; the call returns `is_error: true` with a clear message. **No
 fallback to another scenario ever occurs.** Verified message text:
 
 ```
-Error executing tool get_plan_state: unknown scenario_id 'no-such-scenario'; available: ['demo-release-plan']
+Error executing tool get_plan_state: unknown scenario_id 'no-such-scenario'; available: ['demo-release-plan', 'demo-release-plan-staffed']
 ```
 
 `simulate_disruption` also rejects unknown `entity_id` values, an empty
@@ -434,17 +525,30 @@ A well-formed proposal that fails a structural check is **not** an error — it
 returns a `rejected` report (`is_error: false`) with the failing `findings`
 (`stale_plan_version`, `unknown_entity`, or `missing_dependency`).
 
+`rebalance_workload` raises a structured error for an unknown `scenario_id`, an
+unknown `resource_id`, and a **stale or non-integer `expected_plan_version`**:
+
+```
+Error executing tool rebalance_workload: unknown resource_id 'ghost'; available: ['alice', 'bob']
+Error executing tool rebalance_workload: stale expected_plan_version 99; committed plan version is 1
+```
+
+A scenario without staffing data is **not** an error — it returns
+`outcome: "insufficient_data"` (`is_error: false`) so the absence of data is
+explicit rather than a misleading empty rebalance.
+
 Internally `get_scenario()` raises `ScenarioError`, the impact engine raises
-`ImpactError`, the recovery engine raises `RecoveryError`, and the evaluation
-engine raises `EvaluationError`; all are converted to the SDK's `ToolError` so
-the message reaches the model/client.
+`ImpactError`, the recovery engine raises `RecoveryError`, the evaluation engine
+raises `EvaluationError`, and the workload engine raises `WorkloadError`; all are
+converted to the SDK's `ToolError` so the message reaches the model/client.
 
-## 13. Current limitations / not yet implemented
+## 14. Current limitations / not yet implemented
 
-- **Single scenario**: only `demo-release-plan` exists; no dynamic plan loading.
+- **Single scenario**: only `demo-release-plan` and its staffed variant
+  `demo-release-plan-staffed` exist; no dynamic plan loading or editing.
 - **Healthy committed plan**: `status` is always `healthy` and the committed
-  `disruptions` is always `[]`. Simulation, recovery, and evaluation are
-  hypothetical/read-only and are never persisted.
+  `disruptions` is always `[]`. Simulation, recovery, evaluation, and workload
+  rebalancing are hypothetical/read-only and are never persisted.
 - **Simplified impact model**: any transitively affected entity is reported as
   `blocked`, regardless of its committed status (a completed entity can appear
   as blocked in a simulation). No severity-weighted or partial impact yet.
@@ -456,8 +560,14 @@ the message reaches the model/client.
   It does **not** assess business readiness — that is deliberately out of scope
   and reported as an explicit warning. `unblocks`/`still_blocked` are
   single-disruption, residual-graph claims.
-- **No writes**: no task reassignment, release-date optimization, delivery
-  forecasts, or committing a recovery/evaluation back to the plan.
+- **Workload rebalancing is synthetic and coarse**: only the staffed demo
+  scenario has resources; capacity/effort are abstract integer `work_units` with
+  no time dimension. Skills, roles, availability, partial moves, and scheduling
+  are unmodeled; suggestions are greedy and may relocate more than the minimum.
+  No delivery date or forecast is ever produced.
+- **No writes**: no committing a reassignment, release-date optimization,
+  delivery forecasts, or committing a recovery/evaluation/rebalance back to the
+  plan.
 - **No AI**: no LLM, no Amazon Bedrock, no inference of any kind.
 - **No scheduling**: no critical-path or timeline scheduling.
 - **No frontend** and no persistence (fixtures are in-process Python dicts).
@@ -468,5 +578,5 @@ the message reaches the model/client.
 ## Data contract
 
 See [`docs/data-contract.md`](docs/data-contract.md) for the scenario, entity,
-dependency, disruption-simulation, recovery-alternative, and proposal-evaluation
-schemas and open questions for the team.
+dependency, disruption-simulation, recovery-alternative, proposal-evaluation, and
+workload-rebalancing schemas and open questions for the team.

@@ -1,11 +1,12 @@
 """RippleBack MCP server.
 
-Exposes four read-only tools over the Streamable HTTP transport:
+Exposes five read-only tools over the Streamable HTTP transport:
 
 * ``get_plan_state`` — committed plan state.
 * ``simulate_disruption`` — hypothetical dependency-impact analysis.
 * ``find_alternative_dependencies`` — hypothetical recovery alternatives.
 * ``evaluate_recovery_plan`` — structural evaluation of a recovery proposal.
+* ``rebalance_workload`` — hypothetical reassignment suggestions (staffed plans).
 
 No writes yet.
 """
@@ -28,6 +29,7 @@ from rippleback.recovery import (
     find_alternative_dependencies as _find_alternatives,
 )
 from rippleback.scenarios import ScenarioError, get_scenario
+from rippleback.workload import WorkloadError, rebalance_workload as _rebalance
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -38,8 +40,9 @@ mcp = MCPServer(
     instructions=(
         "RippleBack project-disruption MCP server. "
         "Exposes plan-state inspection, hypothetical disruption impact, "
-        "hypothetical recovery alternatives, and structural evaluation of a "
-        "recovery proposal."
+        "hypothetical recovery alternatives, structural evaluation of a "
+        "recovery proposal, and hypothetical workload rebalancing for staffed "
+        "plans."
     ),
 )
 
@@ -167,6 +170,46 @@ def evaluate_recovery_plan(
             expected_plan_version=expected_plan_version,
         )
     except (ScenarioError, EvaluationError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="rebalance_workload",
+    description=(
+        "Propose hypothetical workload reassignments for a staffed scenario. "
+        "Given a scenario with a resources list and per-entity assignee/effort "
+        "values, report each resource's capacity, unfinished assigned effort, "
+        "free capacity, and overload status, then suggest deterministic moves "
+        "that relieve overloaded resources, with stable suggestion ids. "
+        "Effort is in abstract 'work_units' with no time dimension. Read-only: "
+        "committed assignments, dependencies, statuses, and version are never "
+        "changed; no delivery dates are predicted. Requires "
+        "expected_plan_version (stale versions are rejected). Optionally scope "
+        "the analysis to one resource with resource_id. Scenarios without "
+        "staffing data return an explicit 'insufficient_data' outcome. Unknown "
+        "scenario/resource ids return a structured error."
+    ),
+)
+def rebalance_workload(
+    scenario_id: str,
+    expected_plan_version: int,
+    resource_id: str | None = None,
+) -> dict[str, Any]:
+    """Return deterministic, read-only reassignment suggestions.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios/resources and stale
+    or invalid plan versions so the client receives a clear, structured error.
+    Scenarios without staffing data return an explicit ``insufficient_data``
+    outcome rather than a silent empty rebalance.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        return _rebalance(
+            scenario,
+            expected_plan_version=expected_plan_version,
+            resource_id=resource_id,
+        )
+    except (ScenarioError, WorkloadError) as exc:
         raise ToolError(str(exc)) from exc
 
 

@@ -1,15 +1,18 @@
 # RippleBack data contract
 
 Source of truth: `src/rippleback/scenarios.py` (plan data), `src/rippleback/impact.py`
-(disruption simulation), `src/rippleback/recovery.py` (recovery alternatives), and
-`src/rippleback/evaluation.py` (recovery-proposal evaluation). Plan validation is
+(disruption simulation), `src/rippleback/recovery.py` (recovery alternatives),
+`src/rippleback/evaluation.py` (recovery-proposal evaluation), and
+`src/rippleback/workload.py` (workload rebalancing). Plan validation is
 enforced by `validate_scenario()` at fixture definition/lookup time and surfaced
 through `get_plan_state`.
 
 Phase 1 defined the plan schema (§1–§3). Phase 2 added hypothetical disruption
 simulation (§4). Phase 3 added hypothetical recovery alternatives (§5). Phase 4
-adds structural evaluation of a recovery proposal (§6). All of §4–§6 are
-read-only and return separate result objects; none changes the plan schema.
+adds structural evaluation of a recovery proposal (§6). Phase 5 adds hypothetical
+workload rebalancing for staffed scenarios (§7). All of §4–§7 are read-only and
+return separate result objects; §7 also adds optional plan fields (`resources`,
+entity `assignee`/`effort`) but does not change any required field.
 
 Status: **proposed for team review.** Fields marked **OPEN** need a decision —
 see [Open questions](#open-questions).
@@ -29,6 +32,7 @@ Top-level object returned (in summarized form) by `get_plan_state`.
 | `entities` | list of [Entity](#2-entity-schema) (non-empty) | yes | see below |
 | `dependencies` | list of [Dependency](#3-dependency-schema) | yes | see below |
 | `constraints` | list of [Constraint](#constraint-schema) | yes | see below |
+| `resources` | list of [Resource](#resource-schema) | no (Phase 5) | see §7 |
 | `disruptions` | list of disruption | tool output only; committed plan is always `[]` — simulated disruptions live in §4, not here | `[]` |
 
 Example (verified output, truncated):
@@ -68,12 +72,19 @@ state. It does **not** describe ordering — that is a dependency.
 | `id` | string, stable, non-empty, unique within a scenario | yes | `"payment-api"` |
 | `name` | string | yes | `"Payment API service"` |
 | `status` | enum: `pending` \| `in_progress` \| `done` \| `blocked` | yes | `"done"` |
+| `assignee` | resource id (Phase 5, optional) | no | `"alice"` |
+| `effort` | non-negative integer, abstract `work_units` (Phase 5, optional) | no | `3` |
 
 Example:
 
 ```json
 { "id": "payment-api", "name": "Payment API service", "status": "done" }
 ```
+
+`assignee`/`effort` are optional Phase 5 staffing fields; an entity is counted in
+workload rebalancing (§7) only when **both** are present and `assignee` names a
+declared resource. When present, `assignee` must reference an existing
+`resources[].id` and `effort` must be a non-negative integer (`bool` excluded).
 
 ---
 
@@ -456,6 +467,111 @@ Example (valid proposal, target `payment-api`):
 
 ---
 
+## 7. Workload rebalancing schema (Phase 5)
+
+Operation: `rebalance_workload(scenario_id, expected_plan_version, resource_id=None)`.
+Hypothetical and deterministic: the committed plan, its resources, assignments,
+dependencies, entity statuses, and `version` are never modified.
+
+> **Phase 5 introduces two optional plan fields**, `resources` (scenario-level)
+> and `assignee`/`effort` (entity-level). They are **optional**: scenarios without
+> them remain valid and simply return `outcome: "insufficient_data"`. The values
+> in the shipped `demo-release-plan-staffed` fixture are **synthetic demo data**,
+> not real capacity, effort, or availability.
+
+### Resource schema
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `id` | string, stable, non-empty, unique within a scenario | yes | `"alice"` |
+| `name` | string (display only) | yes | `"Alice (synthetic)"` |
+| `capacity` | non-negative integer, abstract `work_units` (`bool` excluded) | yes | `3` |
+
+### Workload input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"demo-release-plan-staffed"` |
+| `expected_plan_version` | integer; must equal the committed `version` | yes | `1` |
+| `resource_id` | existing resource id; scopes which resource's overload is addressed | no | `"alice"` |
+
+### Workload result
+
+| Field | Type | Example |
+|-------|------|---------|
+| `scenario_id` / `plan_id` | echoed from the scenario | `"demo-release-plan-staffed"` |
+| `plan_version` | committed version | `1` |
+| `expected_plan_version` | echoed from the caller | `1` |
+| `simulated` | always `true` | `true` |
+| `unit` | always the string `"work_units"` | `"work_units"` |
+| `outcome` | enum: `ok` \| `insufficient_data` | `"ok"` |
+| `resources` | per-resource summary (see below) | see below |
+| `suggestions` | list of hypothetical moves | see below |
+| `unresolved` | tasks that could not be moved | see below |
+| `assumptions` | list of strings | see below |
+| `limitations` | list of strings | see below |
+
+Per-**resource** summary:
+
+| Field | Type | Example |
+|-------|------|---------|
+| `resource_id` | resource id | `"alice"` |
+| `name` | display name | `"Alice (synthetic)"` |
+| `capacity` | declared capacity | `3` |
+| `assigned_effort` | sum of **unfinished** assigned effort | `4` |
+| `free_capacity` | `capacity - assigned_effort` (may be negative) | `-1` |
+| `overloaded` | `true` when `free_capacity < 0` | `true` |
+| `assigned_entity_ids` | unfinished entity ids, scenario order | `["release-validation", "production-release"]` |
+
+Each **suggestion**:
+
+| Field | Type | Example |
+|-------|------|---------|
+| `suggestion_id` | stable id `rebalance:{entity_id}->{resource_id}` | `"rebalance:production-release->bob"` |
+| `entity_id` | the task being moved | `"production-release"` |
+| `effort` | the task's effort in `work_units` | `1` |
+| `from_resource_id` | current (overloaded) resource | `"alice"` |
+| `to_resource_id` | destination resource | `"bob"` |
+| `reason` | human-readable rationale | `"..."` |
+| `assumptions` | list of strings | see below |
+| `limitations` | list of strings | see below |
+
+Each **unresolved** item: `{entity_id, resource_id, effort, reason}`.
+
+Example (verified, abridged only by whitespace) is in the
+[README §12](../README.md#12-example-rebalance_workload-call-and-response).
+
+### Rebalancing rules (normative)
+
+- A task counts toward a resource's load only when its `status` is **unfinished**
+  (`pending`/`in_progress`/`blocked`) and it has both `assignee` and `effort`.
+  `done` work is excluded.
+- A resource is **overloaded** when its unfinished assigned effort exceeds its
+  `capacity`. Workload does not depend on dependencies or the disrupted state —
+  it is a raw capacity comparison.
+- Suggestions are produced **greedily in scenario order**: for each overloaded
+  source (in declared resource order), consider its unfinished entities in
+  scenario order and place each on the **first** resource (declared order, not the
+  source) with `free_capacity >= effort`. This may relocate more than the strict
+  minimum; that is a stated limitation.
+- A task that cannot be placed on any resource with enough free capacity remains
+  in `unresolved` and is **not** removed from its origin.
+- When `resource_id` is supplied, only that resource's overload is addressed;
+  every other resource may still be a destination.
+- The tool never mutates anything and never predicts a delivery date.
+
+### Insufficient data vs errors
+
+- No `resources` list → `outcome: "insufficient_data"` (`is_error: false`), with
+  an explicit limitation. This is **not** a silent empty `ok`.
+- Unknown `scenario_id` / unknown `resource_id` → structured error
+  (`is_error: true`).
+- Stale or non-integer `expected_plan_version` → structured error
+  (`is_error: true`). *(Note: unlike §6 `evaluate_recovery_plan`, which returns a
+  `rejected` report for a stale version, §7 rejects a stale version as an error.)*
+
+---
+
 ## Stable IDs
 
 - Entity `id` values are the stable identifiers; `name` is display-only and
@@ -471,12 +587,15 @@ Example (valid proposal, target `payment-api`):
 
 Minimum for a scenario to be accepted:
 `scenario_id`, `plan_id`, `version`, `entities`, `dependencies`, `constraints`.
-A scenario with a missing field, a bad status, an unknown reference, a
+`resources` (and entity `assignee`/`effort`) are **optional** (Phase 5). A
+scenario with a missing field, a bad status, an unknown reference, a
 self-dependency, or a duplicate id is rejected by `validate_scenario()` and
-reported as a malformed-scenario error by `get_scenario()`.
+reported as a malformed-scenario error by `get_scenario()`. Wrongly typed
+`resources`/`assignee`/`effort` values are likewise rejected.
 
 Unknown `scenario_id` at tool time → `is_error: true`, message:
-`unknown scenario_id '<id>'; available: ['demo-release-plan']` (no fallback).
+`unknown scenario_id '<id>'; available: ['demo-release-plan', 'demo-release-plan-staffed']`
+(no fallback).
 
 ---
 
@@ -517,3 +636,11 @@ Unknown `scenario_id` at tool time → `is_error: true`, message:
     substitute/defer field on entities), or stay a human decision? Is reusing
     `option_id` as the proposal handle acceptable, or should proposals pass
     `{dependent, prerequisite}` explicitly?
+11. **Workload / capacity model (Phase 5)** — is a flat scenario-level
+    `resources` list with per-entity `assignee`/`effort` the right minimal model?
+    Should `effort` be integer `work_units` or carry a unit/duration? Should stale
+    `expected_plan_version` be an **error** (current §7) or a `rejected`-style
+    report (as in §6)? Is greedy scenario-order placement acceptable, or do we
+    need a globally optimal assignment? Do we need per-entity skills/roles,
+    availability windows, or partial moves? Is the `insufficient_data` outcome the
+    right way to signal a non-staffed scenario?
