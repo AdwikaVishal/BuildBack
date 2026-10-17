@@ -1,14 +1,15 @@
 # RippleBack data contract
 
-Source of truth: `src/rippleback/scenarios.py` (plan data) and
-`src/rippleback/impact.py` (disruption simulation). Plan validation is enforced
-by `validate_scenario()` at fixture definition/lookup time and surfaced through
-`get_plan_state`.
+Source of truth: `src/rippleback/scenarios.py` (plan data), `src/rippleback/impact.py`
+(disruption simulation), `src/rippleback/recovery.py` (recovery alternatives), and
+`src/rippleback/evaluation.py` (recovery-proposal evaluation). Plan validation is
+enforced by `validate_scenario()` at fixture definition/lookup time and surfaced
+through `get_plan_state`.
 
 Phase 1 defined the plan schema (§1–§3). Phase 2 added hypothetical disruption
-simulation (§4). Phase 3 adds hypothetical recovery alternatives (§5). Both
-Phase 2 and Phase 3 are read-only and return separate result objects; neither
-changes the plan schema.
+simulation (§4). Phase 3 added hypothetical recovery alternatives (§5). Phase 4
+adds structural evaluation of a recovery proposal (§6). All of §4–§6 are
+read-only and return separate result objects; none changes the plan schema.
 
 Status: **proposed for team review.** Fields marked **OPEN** need a decision —
 see [Open questions](#open-questions).
@@ -329,6 +330,132 @@ Returned as a structured tool error (`is_error: true`); no fallback.
 
 ---
 
+## 6. Recovery-proposal evaluation schema (Phase 4)
+
+Operation: `evaluate_recovery_plan(scenario_id, option_id, expected_plan_version)`.
+Read-only and deterministic: the committed plan, its dependencies, entity
+statuses, and `version` are never modified.
+
+### Structural validity vs business readiness (normative)
+
+The `verdict` answers a **structural** question only: does the proposal's
+dependency edge exist, do its entity references resolve, and does the caller's
+`expected_plan_version` match the committed version? It does **not** assert that
+bypassing a prerequisite is safe or ready to execute — the scenario contains no
+information about integration contracts, substitute services, or delivery
+constraints. Every report therefore includes a
+`business_readiness_not_assessed` **warning** finding and matching
+`limitations`. A `structurally_valid` verdict must never be presented as a
+verified fix.
+
+### Evaluation input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"demo-release-plan"` |
+| `option_id` | a recovery option id, `drop-dependency:{dependent}->{prerequisite}` (§5) | yes | `"drop-dependency:backend-integration->payment-api"` |
+| `expected_plan_version` | integer — the version the proposal was built against | yes | `1` |
+
+> **Ambiguity flagged:** no proposal schema existed before Phase 4. This slice
+> reuses the Phase 3 `option_id` as the proposal handle (parsed to the edge) and
+> treats the disrupted entity as the option's `prerequisite`. A future proposal
+> object may pass `{dependent, prerequisite}` explicitly; that is a different
+> contract and must be agreed separately.
+
+### Evaluation result
+
+| Field | Type | Example |
+|-------|------|---------|
+| `evaluation_id` | `eval:{scenario_id}:{option_id}:v{expected_plan_version}` | see below |
+| `scenario_id` / `plan_id` | echoed from the scenario | `"demo-release-plan"` |
+| `plan_version` | committed version that was evaluated | `1` |
+| `expected_plan_version` | echoed from the caller | `1` |
+| `verdict` | enum: `structurally_valid` \| `rejected` | `"structurally_valid"` |
+| `dependency` | the parsed edge `{dependent, prerequisite}` | see below |
+| `findings` | list of `{code, level, message}` | see below |
+| `impact` | object, or `null` when rejected | see below |
+| `assumptions` | list of strings | see below |
+| `limitations` | list of strings | see below |
+
+`verdict` vocabulary (complete):
+
+- **`structurally_valid`** — version matches, entity references resolve, and the
+  edge exists. Includes a `business_readiness_not_assessed` warning.
+- **`rejected`** — a structural check failed (stale version, unknown entity, or
+  missing edge). `impact` is `null`.
+
+`findings[].level` vocabulary: `info`, `warning`, `error`. Codes emitted today:
+`plan_version_match`, `stale_plan_version`, `dependency_edge_exists`,
+`missing_dependency`, `unknown_entity`, `business_readiness_not_assessed`.
+Findings are emitted in a fixed order, so output is deterministic.
+
+`impact` (populated only when `verdict` is `structurally_valid`):
+
+| Field | Type | Example |
+|-------|------|---------|
+| `disrupted_entity_id` | the option's `prerequisite` | `"payment-api"` |
+| `removed_dependency` | the edge `{dependent, prerequisite}` | see below |
+| `unblocks` | entity ids no longer reachable from the prerequisite in the **residual** graph (§5 residual semantics) | `["backend-integration", ...]` |
+| `still_blocked` | entity ids still reachable in the residual graph | `[]` |
+
+Example (valid proposal, target `payment-api`):
+
+```json
+{
+  "evaluation_id": "eval:demo-release-plan:drop-dependency:backend-integration->payment-api:v1",
+  "scenario_id": "demo-release-plan",
+  "plan_id": "plan-payment-api-release",
+  "plan_version": 1,
+  "expected_plan_version": 1,
+  "verdict": "structurally_valid",
+  "dependency": {"dependent": "backend-integration", "prerequisite": "payment-api"},
+  "findings": [
+    {"code": "plan_version_match", "level": "info",
+     "message": "expected_plan_version 1 matches the committed plan version 1."},
+    {"code": "dependency_edge_exists", "level": "info",
+     "message": "dependency edge 'backend-integration' requires 'payment-api' exists in the committed plan."},
+    {"code": "business_readiness_not_assessed", "level": "warning",
+     "message": "Structural validity only: business readiness ... is not assessed and must be reviewed by a human."}
+  ],
+  "impact": {
+    "disrupted_entity_id": "payment-api",
+    "removed_dependency": {"dependent": "backend-integration", "prerequisite": "payment-api"},
+    "unblocks": ["backend-integration", "integration-testing", "release-validation", "production-release"],
+    "still_blocked": []
+  },
+  "assumptions": [
+    "Assumes 'payment-api' is the only unavailable entity (single-disruption model).",
+    "Assumes the committed dependency graph is authoritative for dependency ordering."
+  ],
+  "limitations": [
+    "Structural validity does not imply business readiness; removing a hard prerequisite may break integration guarantees.",
+    "No substitute candidates, cost/effort ranking, or scheduling are evaluated.",
+    "Read-only: the committed plan is not changed and no recovery is committed."
+  ]
+}
+```
+
+### Evaluation rules (normative)
+
+- A proposal that fails any structural check returns `verdict: "rejected"` and
+  `impact: null` — a **documented rejection result**, never a silent fallback to
+  a different plan, edge, or version.
+- On branching graphs, `unblocks`/`still_blocked` are computed on the residual
+  graph (§5). Removing one prerequisite of a multi-prerequisite dependent does
+  **not** list that dependent as unblocked while another of its prerequisites
+  remains reachable.
+- Evaluation never mutates the scenario, its entities, dependencies, or version.
+
+### Errors vs rejection
+
+- Unknown `scenario_id` → structured error (`is_error: true`), same as §4/§5.
+- Malformed `option_id` or non-integer `expected_plan_version` → structured
+  error (the request itself is malformed).
+- Well-formed proposals that fail a check (stale version, unknown entity,
+  missing edge) → `rejected` report (`is_error: false`).
+
+---
+
 ## Stable IDs
 
 - Entity `id` values are the stable identifiers; `name` is display-only and
@@ -383,3 +510,10 @@ Unknown `scenario_id` at tool time → `is_error: true`, message:
    primitive, or should the team specify substitution candidates, cost/effort
    ranking, or multi-step recovery plans? Also: is `option_id` format
    `drop-dependency:{dependent}->{prerequisite}` acceptable as a stable id?
+10. **Evaluation semantics (Phase 4)** — is `structurally_valid` vs `rejected`
+    the right verdict vocabulary, or do we need a third state? Should a failed
+    structural check be a `rejected` report (current) or a structured error?
+    Should business readiness ever be derivable from the scenario (requiring a
+    substitute/defer field on entities), or stay a human decision? Is reusing
+    `option_id` as the proposal handle acceptable, or should proposals pass
+    `{dependent, prerequisite}` explicitly?

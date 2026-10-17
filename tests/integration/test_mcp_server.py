@@ -278,3 +278,135 @@ async def test_find_alternative_dependencies_does_not_mutate_plan(
             assert committed["version"] == 1
             assert committed["disruptions"] == []
             assert len(committed["dependencies"]) == 4
+
+
+async def test_evaluate_recovery_plan_is_discoverable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.list_tools()
+            tool_names = {tool.name for tool in result.tools}
+            assert {
+                "get_plan_state",
+                "simulate_disruption",
+                "find_alternative_dependencies",
+                "evaluate_recovery_plan",
+            } <= tool_names
+
+
+async def test_evaluate_recovery_plan_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "evaluate_recovery_plan",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "drop-dependency:backend-integration->payment-api",
+                    "expected_plan_version": 1,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+
+            assert report["verdict"] == "structurally_valid"
+            assert report["plan_version"] == 1
+            assert report["dependency"] == {
+                "dependent": "backend-integration",
+                "prerequisite": "payment-api",
+            }
+            assert report["impact"]["unblocks"] == [
+                "backend-integration",
+                "integration-testing",
+                "release-validation",
+                "production-release",
+            ]
+            assert report["assumptions"] and report["limitations"]
+
+
+async def test_evaluate_recovery_plan_missing_edge_is_rejected(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "evaluate_recovery_plan",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "drop-dependency:payment-api->backend-integration",
+                    "expected_plan_version": 1,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["verdict"] == "rejected"
+            assert report["impact"] is None
+            assert any(
+                finding["code"] == "missing_dependency"
+                for finding in report["findings"]
+            )
+
+
+async def test_evaluate_recovery_plan_stale_version_is_rejected(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "evaluate_recovery_plan",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "drop-dependency:backend-integration->payment-api",
+                    "expected_plan_version": 99,
+                },
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["verdict"] == "rejected"
+            assert any(
+                finding["code"] == "stale_plan_version"
+                for finding in report["findings"]
+            )
+
+
+async def test_evaluate_recovery_plan_malformed_option_returns_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "evaluate_recovery_plan",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "not-an-option",
+                    "expected_plan_version": 1,
+                },
+            )
+            assert result.is_error is True
+            text = result.content[0].text if result.content else ""
+            assert "malformed option_id" in text
+
+
+async def test_evaluate_recovery_plan_does_not_mutate_plan(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            await session.call_tool(
+                "evaluate_recovery_plan",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "drop-dependency:backend-integration->payment-api",
+                    "expected_plan_version": 1,
+                },
+            )
+            plan = await session.call_tool(
+                "get_plan_state", {"scenario_id": SEEDED_SCENARIO_ID}
+            )
+            committed = json.loads(plan.content[0].text)
+            assert committed["status"] == "healthy"
+            assert committed["version"] == 1
+            assert committed["disruptions"] == []
+            assert len(committed["dependencies"]) == 4

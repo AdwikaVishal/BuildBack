@@ -1,12 +1,13 @@
 """RippleBack MCP server.
 
-Exposes three read-only tools over the Streamable HTTP transport:
+Exposes four read-only tools over the Streamable HTTP transport:
 
 * ``get_plan_state`` — committed plan state.
 * ``simulate_disruption`` — hypothetical dependency-impact analysis.
 * ``find_alternative_dependencies`` — hypothetical recovery alternatives.
+* ``evaluate_recovery_plan`` — structural evaluation of a recovery proposal.
 
-No recovery-plan evaluation or writes yet.
+No writes yet.
 """
 
 from __future__ import annotations
@@ -17,6 +18,10 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+from rippleback.evaluation import (
+    EvaluationError,
+    evaluate_recovery_plan as _evaluate,
+)
 from rippleback.impact import ImpactError, simulate_disruption as _simulate
 from rippleback.recovery import (
     RecoveryError,
@@ -32,8 +37,9 @@ mcp = MCPServer(
     version="0.1.0",
     instructions=(
         "RippleBack project-disruption MCP server. "
-        "Exposes plan-state inspection, hypothetical disruption impact, and "
-        "hypothetical recovery alternatives."
+        "Exposes plan-state inspection, hypothetical disruption impact, "
+        "hypothetical recovery alternatives, and structural evaluation of a "
+        "recovery proposal."
     ),
 )
 
@@ -123,6 +129,44 @@ def find_alternative_dependencies(
         scenario = get_scenario(scenario_id)
         return _find_alternatives(scenario, entity_id=entity_id)
     except (ScenarioError, RecoveryError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="evaluate_recovery_plan",
+    description=(
+        "Structurally evaluate a recovery proposal against a seeded scenario. "
+        "The proposal is a recovery option id (see find_alternative_dependencies) "
+        "plus the plan version it was built against. Checks that the entity "
+        "references resolve, the dependency edge exists, and the expected plan "
+        "version matches the committed version, then reports remaining "
+        "prerequisites and downstream effects using the residual graph. The "
+        "verdict is structural only — business readiness is explicitly not "
+        "assessed. Read-only: the committed plan is never modified. Unknown "
+        "scenario ids and malformed proposals return a structured error; "
+        "well-formed proposals that fail a check return a 'rejected' report."
+    ),
+)
+def evaluate_recovery_plan(
+    scenario_id: str,
+    option_id: str,
+    expected_plan_version: int,
+) -> dict[str, Any]:
+    """Return a deterministic, read-only evaluation of a recovery proposal.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios and malformed
+    proposals (bad option id or non-integer version) so the client receives a
+    clear, structured error. Proposals that fail structural checks (unknown
+    entity, missing edge, stale version) return a ``rejected`` report.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        return _evaluate(
+            scenario,
+            option_id=option_id,
+            expected_plan_version=expected_plan_version,
+        )
+    except (ScenarioError, EvaluationError) as exc:
         raise ToolError(str(exc)) from exc
 
 
