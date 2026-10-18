@@ -1,19 +1,25 @@
 # RippleBack data contract
 
 Source of truth: `src/rippleback/scenarios.py` (plan data), `src/rippleback/impact.py`
-(disruption simulation), `src/rippleback/recovery.py` (recovery alternatives),
-`src/rippleback/evaluation.py` (recovery-proposal evaluation),
+(disruption simulation), `src/rippleback/recovery.py` (recovery alternatives and
+substitute candidates), `src/rippleback/evaluation.py` (recovery-proposal evaluation),
 `src/rippleback/workload.py` (workload rebalancing), `src/rippleback/graph.py`
-(typed dependency graph), `src/rippleback/critical_path.py` (critical path), and
-`src/rippleback/triage.py` (blocker triage). Plan validation is
-enforced by `validate_scenario()` at fixture definition/lookup time and surfaced
-through `get_plan_state`.
+(typed dependency graph), `src/rippleback/critical_path.py` (critical path),
+`src/rippleback/triage.py` (blocker triage), `src/rippleback/forecast.py`
+(delivery forecasts), `src/rippleback/constraints.py` (hard-constraint
+validation), `src/rippleback/scoring.py` (option scoring/ranking), and
+`src/rippleback/comparison.py` (option comparison with forecasts). Plan
+validation is enforced by `validate_scenario()` at fixture definition/lookup
+time and surfaced through `get_plan_state`.
 
 Phase 1 defined the plan schema (§1–§3). Phase 2 added hypothetical disruption
 simulation (§4). Phase 3 added hypothetical recovery alternatives (§5). Phase 4
 adds structural evaluation of a recovery proposal (§6). Phase 5 adds hypothetical
 workload rebalancing for staffed scenarios (§7). Phase 6 adds blocker triage (§8) and the typed dependency graph + critical path
-(§9). All of §4–§9 are read-only and return separate result objects. §7 adds
+(§9). Milestone 6 (Person 3 engine integration) adds delivery forecasts (§10),
+hard-constraint validation (§11), option scoring/ranking (§12), option
+comparison with forecasts (§13), and explicitly declared substitute candidates
+(§14), each also exposed as a read-only MCP tool. All of §4–§14 are read-only and return separate result objects. §7 adds
 optional plan fields (`resources`, entity `assignee`/`effort`) and §9 adds
 optional graph fields (entity `duration`/`metadata`, dependency `dependency_type`,
 constraint `parameters`) but does not change any required field.
@@ -95,9 +101,13 @@ declared resource. When present, `assignee` must reference an existing
 `duration` and `metadata` are optional Phase 6 fields (both validated):
 `duration` must be a positive number (`bool` excluded); `metadata` must be an
 object. Recognized `metadata` keys: `external` (a real `true` flags the entity as
-owned outside the team — see the `external` state in §8) and `slack_minutes`
+owned outside the team — see the `external` state in §8), `slack_minutes`
 (a non-negative number of buffer minutes used by delay-absorption and the
-at-risk threshold in §8). Unknown keys are allowed and ignored.
+at-risk threshold in §8), and `substitutes` (Milestone 6: a list of entity ids
+proposed as substitute candidates for this entity — see §14; `validate_scenario`
+does not check it, but `find_substitute_options` rejects a malformed value with
+a structured error, and no shipped fixture declares it). Unknown keys are
+allowed and ignored.
 
 ---
 
@@ -749,6 +759,239 @@ ranking** of dependency chains, never a delivery date or a duration forecast.
 
 ---
 
+## 10. Delivery forecast schema (Milestone 6)
+
+Operation: `recalculate_delivery_forecast(scenario_id, changes=None,
+option_id=None, disrupted_entity_id=None)`. Engine:
+`rippleback.forecast.recalculate_delivery_forecast(scenario, *,
+disrupted_entity_id=None, changes=None, option_id=None)`. Read-only and
+deterministic: the committed plan is never modified.
+
+### Forecast input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"demo-release-plan"` |
+| `changes` | list of `apply_changes` operations (`remove_dependency` / `add_dependency`) | one of `changes`/`option_id`/neither | see below |
+| `option_id` | legacy `drop-dependency:{dependent}->{prerequisite}` id (§5) | one of `changes`/`option_id`/neither | `"drop-dependency:backend-integration->payment-api"` |
+| `disrupted_entity_id` | existing entity id | no | `"payment-api"` |
+
+Providing both `changes` and `option_id` is ambiguous and is an error.
+`substitute:{prerequisite}->{substitute}` ids (§14) are **not parseable** here
+and are rejected with a structured error directing the caller to pass the
+option's explicit `changes`.
+
+### Forecast result
+
+Keys, in order: `scenario_id`, `plan_id`, `plan_version`, `simulated`,
+`disrupted_entity_id`, `option_id`, `changes`, `feasible`, `error`, `unit`,
+`baseline_path`, `baseline_length`, `baseline_edges`, `forecast_path`,
+`forecast_length`, `forecast_edges`, `delay_delta`, `assumptions`,
+`limitations`.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `unit` | `"steps"` \| `"duration_units"` | from §9 critical path (durations when any entity declares `duration`) |
+| `baseline_*` | critical-path report for the committed plan | §9 shape |
+| `forecast_*` | critical-path report after `changes`, or `null` when infeasible | §9 shape |
+| `delay_delta` | `forecast_length - baseline_length`, or `null` when infeasible | a **difference of relative totals**, never a duration and never a date |
+| `feasible` / `error` | `true`/`null`, or `false`/`{code, message}` | in-band invalid-graph outcome |
+
+### Forecast rules (normative)
+
+- Lengths are relative critical-path durations in `unit` — **never calendar
+  dates**; the repository models no start date, calendar, or working hours.
+- A well-formed change set that yields an invalid graph (cycle, unknown
+  reference, self-dependency) returns `feasible: false` plus the stable §9
+  graph error code and `null` forecast fields — an invalid plan is never
+  reported as a valid forecast, and this is a result, not an error.
+- Invalid *requests* (unknown scenario/entity, non-list or malformed `changes`,
+  malformed/unknown `option_id`, both inputs given) are structured errors
+  (`is_error: true`).
+- Changes apply with `rippleback.triage.apply_changes` semantics on a copy;
+  the committed plan and `version` are unchanged.
+
+---
+
+## 11. Hard-constraint validation schema (Milestone 6)
+
+Operation: `validate_hard_constraints(scenario_id, changes=None)`. Engine:
+`rippleback.constraints.validate_hard_constraints(scenario, *, changes=None)`.
+Read-only and deterministic.
+
+### Validation input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"demo-release-plan"` |
+| `changes` | list of `apply_changes` operations; `null` validates the committed plan (baseline) | no | see §10 |
+
+### Validation result
+
+Keys, in order: `scenario_id`, `plan_id`, `plan_version`, `simulated`,
+`changes`, `feasible`, `graph_errors`, `constraints`, `violations`,
+`assumptions`, `limitations`.
+
+Each `violations` entry: `{code, message, source, constraint_index,
+constraint_type, entity_ids}` where `source` is `"graph"` or `"constraint"`.
+Graph codes come first (§9: `ENTITY_NOT_FOUND`, `INVALID_DEPENDENCY`,
+`INVALID_DEPENDENCY_TYPE`, `CYCLIC_DEPENDENCY`), then committed constraints in
+fixture order (`CONSTRAINT_VIOLATED`, `UNSUPPORTED_CONSTRAINT`).
+
+### Validation rules (normative)
+
+- Supported constraint type: **`all_entities_done_before`**, checked as a
+  **current-state invariant** — a listed gate entity must not be `done` while
+  any other entity in the scenario is not `done`. `satisfied` means no violation
+  exists in the current committed state, not a guarantee about future
+  transitions. Change sets modify dependencies only and can never change a
+  status.
+- Unsupported constraint types are reported as violations and make the report
+  infeasible; they are never silently skipped or assumed satisfied.
+- `feasible: true` means every graph rule passed **and** every constraint was
+  supported and currently satisfied.
+- No schedule or calendar is modeled: "done before" is evaluated from committed
+  statuses and dependency structure, never from wall-clock time.
+- Malformed scenarios, non-list `changes`, and unsupported change actions are
+  structured errors (`ConstraintError` → tool error); a well-formed but invalid
+  proposal is an in-band `feasible: false` report.
+
+---
+
+## 12. Scoring and ranking schema (Milestone 6)
+
+Engine: `rippleback.scoring.rank_options(scenario, options, weights=None)` and
+`rippleback.scoring.score_option(metrics, weights=None)`. Read-only and
+deterministic; lower scores win.
+
+### Score formula (normative)
+
+```
+score = w_delay·delay + w_cost·cost + w_risk·risk
+      + w_strain·resource_strain + w_count·disruption_count
+```
+
+| Metric | Default weight | Source |
+|--------|----------------|--------|
+| `delay` | `1.0` | derived from §10 `delay_delta` (relative critical-path units) |
+| `cost` | `0.0` | **no source in the repository**; caller-supplied `option["metrics"]` only |
+| `risk` | `0.0` | **no source in the repository**; caller-supplied only |
+| `resource_strain` | `0.0` | derived from §7 workload overload when `resources` exist (scenario-level, identical for every option) |
+| `disruption_count` | `0.0` | caller-supplied only |
+
+### Ranking rules (normative)
+
+- Each option needs a unique non-empty `option_id`. Its change set is
+  `option["changes"]` when present (this is how §14 substitute options flow
+  through), otherwise derived from a `drop-dependency:` id that must match a
+  committed edge — an id matching nothing is excluded as a no-op recovery.
+- Feasibility is gated with §11 **before** any score is computed: infeasible
+  options are excluded with their violations preserved, never scored, never
+  recommended.
+- **Missing-metric policy:** a metric with nonzero weight but no supplied value
+  makes the option **unscorable** (excluded with an explanatory reason) — never
+  scored with a fabricated zero. Equal scores tie-break by ascending `option_id`.
+- Outcomes: `ranked` (≥1 scorable option) or `no_feasible_recovery`.
+- Weights are unitless; scores are comparable only within one call. Malformed
+  options/ids/metrics/weights raise `ScoringError` → tool error.
+
+---
+
+## 13. Option comparison schema (Milestone 6)
+
+Operation: `compare_recovery_options(scenario_id, options, weights=None)`.
+Engine: `rippleback.comparison.compare_recovery_options(scenario, options,
+weights=None)`. Read-only and deterministic.
+
+Returns the full §12 ranking report (same `outcome`, `weights`,
+`feasible_count`, `scorable_count`, `recommendation`, `ranked`, `excluded`)
+plus, inserted after `weights`: `baseline` (the committed plan's §9 critical-path
+report) and, per ranked **and** excluded entry, `forecast` (a §10 forecast for
+that option's change set, with `disrupted_entity_id` and `option_id` `null`) and
+`no_op` (whether applying the option's change set leaves the committed
+dependency plan unchanged, edge order ignored).
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `recommendation` | option id \| `null` | top option that is both feasible and scorable, ties by ascending `option_id`; `null` with `outcome: "no_feasible_recovery"` |
+| `excluded[].violations` | list (§11 shape) | preserved verbatim for infeasible options |
+| `excluded[].reasons` | list of strings | why the option was gated out, unscorable, or a no-op |
+
+### Comparison rules (normative)
+
+- **Infeasible options are never recommended** — they appear only in
+  `excluded`, with their violations.
+- A no-op option can be feasible and scorable but is limited so it is never
+  presented as an improvement; when the recommendation itself is a no-op, the
+  report says to keep the baseline.
+- `options` is a non-empty list of option objects (§5 recovery options and §14
+  substitute options both flow through unchanged); malformed options, weights,
+  or metrics are structured errors.
+- `delay_delta` values are differences of relative totals (§10), never
+  durations or dates.
+
+---
+
+## 14. Substitute recovery options schema (Milestone 6)
+
+Operation: `find_substitute_options(scenario_id, entity_id)`. Engine:
+`rippleback.recovery.find_substitute_options(scenario, *, entity_id)`.
+Read-only and deterministic: the committed plan is never modified.
+
+### Candidate convention (`metadata.substitutes`)
+
+A substitute candidate exists **only** when the disrupted entity explicitly
+declares `metadata.substitutes` — a list of entity ids in the same scenario
+(§2). Duplicates are removed (first occurrence kept). Nothing is inferred from
+names, statuses, resources, or graph structure, and no service, availability,
+compatibility, cost, or risk is invented for a candidate. **No shipped fixture
+declares `metadata.substitutes`**, so all seeded scenarios return
+`no_substitute_candidates` with `missing_data` explaining what is absent.
+
+### Substitute input
+
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `scenario_id` | existing scenario id | yes | `"demo-release-plan"` |
+| `entity_id` | existing entity id (the disrupted prerequisite) | yes | `"payment-api"` |
+
+### Substitute result
+
+Keys, in order: `scenario_id`, `plan_id`, `plan_version`, `simulated`,
+`disruption`, `outcome`, `options`, `missing_data`, `assumptions`,
+`limitations`.
+
+`outcome` (complete): **`substitutes_proposed`** (≥1 feasible option),
+**`no_feasible_substitute`** (candidates declared, none feasible), or
+**`no_substitute_candidates`** (no candidate data; see `missing_data`).
+
+Each option (keys in order): `option_id`, `explanation`,
+`disrupted_entity_id`, `substitute_entity_id`, `affected_entity_ids`,
+`affected_dependencies`, `changes`, `feasible`, `reasons`, `violations`,
+`assumptions`, `limitations`.
+
+### Substitute rules (normative)
+
+- `option_id` format: `substitute:{prerequisite}->{substitute}` — distinct from
+  the §5 `drop-dependency:` ids; the evaluator (§6) and the §10 `option_id`
+  parser accept only `drop-dependency:` ids, so substitute options travel
+  through §13/§10 via their explicit `changes`.
+- Each option's `changes` reroutes **every** dependency edge on the disrupted
+  prerequisite: one `remove_dependency` plus one `add_dependency` per dependent
+  (fixture dependency order), preserving each edge's `dependency_type` and
+  `constraint_parameters`.
+- Every candidate is gated with §11 (graph validation included). Options that
+  fail the gate — or are structurally rejected (candidate equals the disrupted
+  entity, or names an unknown entity) — are reported `feasible: false` with
+  `reasons` and verbatim `violations` (`CYCLIC_DEPENDENCY`,
+  `ENTITY_NOT_FOUND`, `INVALID_DEPENDENCY`, `CONSTRAINT_VIOLATED`, ...).
+- Options follow declaration order with duplicates removed, so identical input
+  yields identical output.
+- A malformed `metadata.substitutes` value (not a list, or a non-string entry)
+  and an unknown `entity_id` are structured errors (`is_error: true`).
+
+---
+
 - Entity `id` values are the stable identifiers; `name` is display-only and
   may change.
 - `scenario_id` and `plan_id` are stable for the lifetime of the scenario.
@@ -803,6 +1046,11 @@ Unknown `scenario_id` at tool time → `is_error: true`, message:
    primitive, or should the team specify substitution candidates, cost/effort
    ranking, or multi-step recovery plans? Also: is `option_id` format
    `drop-dependency:{dependent}->{prerequisite}` acceptable as a stable id?
+   **Update (Milestone 6):** §12–§14 now define ranking (delay-only defaults,
+   no fabricated cost/risk) and substitution via an explicit
+   `metadata.substitutes` declaration with `substitute:{prerequisite}->{substitute}`
+   ids — open for team ratification, especially whether the substitute
+   declaration should stay in freeform entity `metadata` or become a typed field.
 10. **Evaluation semantics (Phase 4)** — is `structurally_valid` vs `rejected`
     the right verdict vocabulary, or do we need a third state? Should a failed
     structural check be a `rejected` report (current) or a structured error?
@@ -810,6 +1058,11 @@ Unknown `scenario_id` at tool time → `is_error: true`, message:
     substitute/defer field on entities), or stay a human decision? Is reusing
     `option_id` as the proposal handle acceptable, or should proposals pass
     `{dependent, prerequisite}` explicitly?
+    **Update (Milestone 6):** business readiness stays a human decision —
+    `find_substitute_options` surfaces declared candidates with feasibility
+    limited to hard-constraint/graph validity (§14), never availability,
+    compatibility, cost, or risk. The evaluator's verdict vocabulary is
+    unchanged and still accepts only `drop-dependency:` ids.
  11. **Workload / capacity model (Phase 5)** — is a flat scenario-level
      `resources` list with per-entity `assignee`/`effort` the right minimal model?
      Should `effort` be integer `work_units` or carry a unit/duration? Should stale

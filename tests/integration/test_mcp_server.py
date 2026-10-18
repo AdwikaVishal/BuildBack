@@ -651,3 +651,383 @@ async def test_analyze_blocked_tasks_does_not_mutate_plan(server_url: str) -> No
             committed = json.loads(after.content[0].text)
             assert committed == baseline
             assert committed["version"] == 1
+
+
+MILESTONE6_TOOLS = {
+    "recalculate_delivery_forecast",
+    "validate_hard_constraints",
+    "compare_recovery_options",
+    "find_substitute_options",
+}
+DROP_OPTION_ID = "drop-dependency:backend-integration->payment-api"
+DROP_CHANGE = {
+    "action": "remove_dependency",
+    "dependent": "backend-integration",
+    "prerequisite": "payment-api",
+}
+CYCLE_CHANGE = {
+    "action": "add_dependency",
+    "dependent": "payment-api",
+    "prerequisite": "production-release",
+}
+
+
+async def test_all_ten_tools_are_discoverable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.list_tools()
+            tool_names = [tool.name for tool in result.tools]
+            assert len(tool_names) == len(set(tool_names)), tool_names
+            assert {
+                "get_plan_state",
+                "simulate_disruption",
+                "find_alternative_dependencies",
+                "evaluate_recovery_plan",
+                "rebalance_workload",
+                "analyze_blocked_tasks",
+            } <= set(tool_names)
+            assert MILESTONE6_TOOLS <= set(tool_names)
+
+
+async def test_recalculate_delivery_forecast_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": [DROP_CHANGE]},
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["simulated"] is True
+            assert report["plan_version"] == 1
+            assert report["feasible"] is True
+            assert report["unit"] == "steps"
+            assert report["baseline_length"] == 5.0
+            assert report["forecast_length"] == 4.0
+            assert report["delay_delta"] == -1.0
+            assert report["assumptions"] and report["limitations"]
+
+            via_id = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": DROP_OPTION_ID,
+                    "disrupted_entity_id": "payment-api",
+                },
+            )
+            assert via_id.is_error is False
+            via_id_report = json.loads(via_id.content[0].text)
+            assert via_id_report["feasible"] is True
+            assert via_id_report["delay_delta"] == -1.0
+
+
+async def test_recalculate_delivery_forecast_invalid_graph_stays_in_band(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": [CYCLE_CHANGE]},
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["feasible"] is False
+            assert report["error"]["code"] == "CYCLIC_DEPENDENCY"
+            assert report["forecast_length"] is None
+            assert report["delay_delta"] is None
+
+
+async def test_recalculate_delivery_forecast_rejects_substitute_ids(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "option_id": "substitute:payment-api->backup-api",
+                },
+            )
+            assert result.is_error is True
+            text = result.content[0].text if result.content else ""
+            assert "explicit 'changes'" in text
+
+
+async def test_recalculate_delivery_forecast_invalid_inputs_return_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            unknown = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {"scenario_id": "no-such-scenario", "changes": []},
+            )
+            assert unknown.is_error is True
+            assert "unknown scenario_id" in unknown.content[0].text
+
+            malformed = await session.call_tool(
+                "recalculate_delivery_forecast",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": "remove-me"},
+            )
+            assert malformed.is_error is True
+            malformed_text = malformed.content[0].text
+            assert "validation error" in malformed_text
+            assert "changes" in malformed_text
+
+
+async def test_validate_hard_constraints_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            baseline = await session.call_tool(
+                "validate_hard_constraints", {"scenario_id": SEEDED_SCENARIO_ID}
+            )
+            assert baseline.is_error is False
+            report = json.loads(baseline.content[0].text)
+            assert report["simulated"] is True
+            assert report["feasible"] is True
+            assert report["violations"] == []
+            assert report["graph_errors"] == []
+
+            infeasible = await session.call_tool(
+                "validate_hard_constraints",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": [CYCLE_CHANGE]},
+            )
+            assert infeasible.is_error is False
+            infeasible_report = json.loads(infeasible.content[0].text)
+            assert infeasible_report["feasible"] is False
+            codes = [v["code"] for v in infeasible_report["violations"]]
+            assert codes == ["CYCLIC_DEPENDENCY"]
+
+
+async def test_validate_hard_constraints_invalid_inputs_return_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            unknown = await session.call_tool(
+                "validate_hard_constraints", {"scenario_id": "no-such-scenario"}
+            )
+            assert unknown.is_error is True
+            assert "unknown scenario_id" in unknown.content[0].text
+
+            malformed = await session.call_tool(
+                "validate_hard_constraints",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": 42},
+            )
+            assert malformed.is_error is True
+            malformed_text = malformed.content[0].text
+            assert "validation error" in malformed_text
+            assert "changes" in malformed_text
+
+
+async def test_compare_recovery_options_callable(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            alternatives = await session.call_tool(
+                "find_alternative_dependencies",
+                {"scenario_id": SEEDED_SCENARIO_ID, "entity_id": "payment-api"},
+            )
+            assert alternatives.is_error is False
+            options = json.loads(alternatives.content[0].text)["options"]
+            assert options
+
+            result = await session.call_tool(
+                "compare_recovery_options",
+                {"scenario_id": SEEDED_SCENARIO_ID, "options": options},
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["simulated"] is True
+            assert report["outcome"] == "ranked"
+            assert report["recommendation"] == DROP_OPTION_ID
+            top = report["ranked"][0]
+            assert top["feasible"] is True
+            assert top["forecast"]["delay_delta"] == -1.0
+            assert report["baseline"]["length"] == 5.0
+            assert report["weights"]["delay"] == 1.0
+
+
+async def test_compare_recovery_options_never_recommends_infeasible(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            alternatives = await session.call_tool(
+                "find_alternative_dependencies",
+                {"scenario_id": SEEDED_SCENARIO_ID, "entity_id": "payment-api"},
+            )
+            options = json.loads(alternatives.content[0].text)["options"]
+            options.insert(
+                0,
+                {
+                    "option_id": "invalid-cycle-option",
+                    "changes": [CYCLE_CHANGE],
+                },
+            )
+
+            result = await session.call_tool(
+                "compare_recovery_options",
+                {"scenario_id": SEEDED_SCENARIO_ID, "options": options},
+            )
+            assert result.is_error is False
+            report = json.loads(result.content[0].text)
+            assert report["outcome"] == "ranked"
+            assert report["recommendation"] == DROP_OPTION_ID
+            excluded = report["excluded"][0]
+            assert excluded["option_id"] == "invalid-cycle-option"
+            assert excluded["feasible"] is False
+            assert [v["code"] for v in excluded["violations"]] == [
+                "CYCLIC_DEPENDENCY"
+            ]
+
+            only_bad = await session.call_tool(
+                "compare_recovery_options",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "options": [
+                        {"option_id": "invalid-cycle-option", "changes": [CYCLE_CHANGE]}
+                    ],
+                },
+            )
+            assert only_bad.is_error is False
+            only_bad_report = json.loads(only_bad.content[0].text)
+            assert only_bad_report["outcome"] == "no_feasible_recovery"
+            assert only_bad_report["recommendation"] is None
+
+
+async def test_compare_recovery_options_invalid_inputs_return_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            unknown = await session.call_tool(
+                "compare_recovery_options",
+                {"scenario_id": "no-such-scenario", "options": []},
+            )
+            assert unknown.is_error is True
+            assert "unknown scenario_id" in unknown.content[0].text
+
+            not_a_list = await session.call_tool(
+                "compare_recovery_options",
+                {"scenario_id": SEEDED_SCENARIO_ID, "options": "not-a-list"},
+            )
+            assert not_a_list.is_error is True
+            not_a_list_text = not_a_list.content[0].text
+            assert "validation error" in not_a_list_text
+            assert "options" in not_a_list_text
+
+            bad_weight = await session.call_tool(
+                "compare_recovery_options",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "options": [{"option_id": DROP_OPTION_ID}],
+                    "weights": {"delay": -1.0},
+                },
+            )
+            assert bad_weight.is_error is True
+            assert "weight" in bad_weight.content[0].text
+
+
+async def test_find_substitute_options_no_candidates_on_fixtures(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            for scenario_id in (
+                SEEDED_SCENARIO_ID,
+                STAFFED_SCENARIO_ID,
+                PROJECT_FULL_SCENARIO_ID,
+                TRAVEL_SCENARIO_ID,
+            ):
+                entity_id = (
+                    "leg-1" if scenario_id == TRAVEL_SCENARIO_ID else "payment-api"
+                )
+                result = await session.call_tool(
+                    "find_substitute_options",
+                    {"scenario_id": scenario_id, "entity_id": entity_id},
+                )
+                assert result.is_error is False, scenario_id
+                report = json.loads(result.content[0].text)
+                assert report["simulated"] is True
+                assert report["outcome"] == "no_substitute_candidates"
+                assert report["options"] == []
+                assert report["missing_data"]
+
+
+async def test_find_substitute_options_unknown_inputs_return_error(
+    server_url: str,
+) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            unknown_scenario = await session.call_tool(
+                "find_substitute_options",
+                {"scenario_id": "no-such-scenario", "entity_id": "payment-api"},
+            )
+            assert unknown_scenario.is_error is True
+            assert "unknown scenario_id" in unknown_scenario.content[0].text
+
+            unknown_entity = await session.call_tool(
+                "find_substitute_options",
+                {
+                    "scenario_id": SEEDED_SCENARIO_ID,
+                    "entity_id": "no-such-entity",
+                },
+            )
+            assert unknown_entity.is_error is True
+            assert "unknown entity_id" in unknown_entity.content[0].text
+
+
+async def test_milestone6_tools_do_not_mutate_plan(server_url: str) -> None:
+    async with streamable_http_client(server_url) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            before = await session.call_tool(
+                "get_plan_state", {"scenario_id": SEEDED_SCENARIO_ID}
+            )
+            baseline = json.loads(before.content[0].text)
+
+            await session.call_tool(
+                "recalculate_delivery_forecast",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": [DROP_CHANGE]},
+            )
+            await session.call_tool(
+                "validate_hard_constraints",
+                {"scenario_id": SEEDED_SCENARIO_ID, "changes": [CYCLE_CHANGE]},
+            )
+            alternatives = await session.call_tool(
+                "find_alternative_dependencies",
+                {"scenario_id": SEEDED_SCENARIO_ID, "entity_id": "payment-api"},
+            )
+            options = json.loads(alternatives.content[0].text)["options"]
+            await session.call_tool(
+                "compare_recovery_options",
+                {"scenario_id": SEEDED_SCENARIO_ID, "options": options},
+            )
+            await session.call_tool(
+                "find_substitute_options",
+                {"scenario_id": SEEDED_SCENARIO_ID, "entity_id": "payment-api"},
+            )
+
+            after = await session.call_tool(
+                "get_plan_state", {"scenario_id": SEEDED_SCENARIO_ID}
+            )
+            committed = json.loads(after.content[0].text)
+            assert committed == baseline
+            assert committed["status"] == "healthy"
+            assert committed["version"] == 1
+            assert committed["disruptions"] == []
+            assert len(committed["dependencies"]) == 4

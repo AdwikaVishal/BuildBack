@@ -1,6 +1,6 @@
 """RippleBack MCP server.
 
-Exposes six read-only tools over the Streamable HTTP transport:
+Exposes ten read-only tools over the Streamable HTTP transport:
 
 * ``get_plan_state`` — committed plan state.
 * ``simulate_disruption`` — hypothetical dependency-impact analysis.
@@ -9,6 +9,14 @@ Exposes six read-only tools over the Streamable HTTP transport:
 * ``rebalance_workload`` — hypothetical reassignment suggestions (staffed plans).
 * ``analyze_blocked_tasks`` — blocker triage: one state per entity plus the work
   that can still proceed (BuildBack).
+* ``recalculate_delivery_forecast`` — relative critical-path forecast for a
+  proposed change set (steps/duration_units, never calendar dates).
+* ``validate_hard_constraints`` — hard-constraint and graph validation of a
+  proposed change set.
+* ``compare_recovery_options`` — feasibility gate, scoring, ranking, and
+  per-option forecasts for recovery options.
+* ``find_substitute_options`` — explicit substitute candidates declared via
+  ``metadata.substitutes`` (no shipped fixture declares any).
 
 No writes yet.
 """
@@ -21,23 +29,41 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+from rippleback.comparison import compare_recovery_options as _compare
+from rippleback.constraints import (
+    ConstraintError,
+    validate_hard_constraints as _validate,
+)
 from rippleback.evaluation import (
     EvaluationError,
     evaluate_recovery_plan as _evaluate,
+)
+from rippleback.forecast import (
+    ForecastError,
+    recalculate_delivery_forecast as _forecast,
 )
 from rippleback.graph import GraphError
 from rippleback.impact import ImpactError, simulate_disruption as _simulate
 from rippleback.recovery import (
     RecoveryError,
     find_alternative_dependencies as _find_alternatives,
+    find_substitute_options as _find_substitutes,
 )
 from rippleback.scenarios import ScenarioError, get_scenario
+from rippleback.scoring import ScoringError
 from rippleback.triage import TriageError
 from rippleback.triage import analyze_blocked_tasks as _analyze_blocked
 from rippleback.workload import WorkloadError, rebalance_workload as _rebalance
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
+
+_SUBSTITUTE_ID_PREFIX = "substitute:"
+_SUBSTITUTE_ID_HINT = (
+    "uses the substitute id format, which the legacy "
+    "'drop-dependency:' option-id parser does not support; pass that "
+    "option's explicit 'changes' list instead."
+)
 
 mcp = MCPServer(
     name="RippleBack",
@@ -47,8 +73,14 @@ mcp = MCPServer(
         "Exposes plan-state inspection, hypothetical disruption impact, "
         "hypothetical recovery alternatives, structural evaluation of a "
         "recovery proposal, hypothetical workload rebalancing for staffed "
-        "plans, and blocker triage (which work is blocked, external, at risk, "
-        "healthy, or done, and what can still proceed)."
+        "plans, blocker triage (which work is blocked, external, at risk, "
+        "healthy, or done, and what can still proceed), relative "
+        "critical-path delivery forecasts for a proposed change set, "
+        "hard-constraint and graph validation of a proposed change set, "
+        "comparison and ranking of recovery options with per-option "
+        "forecasts, and explicit substitute-candidate discovery (declared "
+        "via entity metadata only). All tools are read-only and "
+        "hypothetical; nothing is committed."
     ),
 )
 
@@ -256,6 +288,174 @@ def analyze_blocked_tasks(
             parameters=parameters,
         )
     except (ScenarioError, TriageError, GraphError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="recalculate_delivery_forecast",
+    description=(
+        "Compare a scenario's committed critical path with the critical path "
+        "after applying a proposed change set (or a drop-dependency option id), "
+        "and report the delay_delta in relative duration units (steps or "
+        "duration_units) — never calendar dates. The change set uses the "
+        "apply_changes shape: remove_dependency/add_dependency entries. "
+        "Substitute option ids (substitute:...) are rejected with guidance to "
+        "pass the option's explicit changes, because only the legacy "
+        "drop-dependency id format is parseable here. Invalid inputs (unknown "
+        "scenario/entity, malformed changes or option id, both changes and "
+        "option_id) return a structured error; a well-formed change set that "
+        "produces an invalid graph (e.g. a cycle) is reported in-band with "
+        "feasible: false and null forecast fields, never as a valid forecast. "
+        "Read-only: the committed plan is never modified."
+    ),
+)
+def recalculate_delivery_forecast(
+    scenario_id: str,
+    changes: list[dict[str, Any]] | None = None,
+    option_id: str | None = None,
+    disrupted_entity_id: str | None = None,
+) -> dict[str, Any]:
+    """Return a relative critical-path baseline-vs-forecast report.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios/entities, malformed
+    changes or option ids, conflicting inputs, and substitute-format option ids
+    (which must be passed as explicit ``changes``). Invalid graphs come back
+    in-band with ``feasible: False``.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        if (
+            isinstance(option_id, str)
+            and option_id.startswith(_SUBSTITUTE_ID_PREFIX)
+        ):
+            raise ToolError(f"option_id {option_id!r} {_SUBSTITUTE_ID_HINT}")
+        return _forecast(
+            scenario,
+            changes=changes,
+            option_id=option_id,
+            disrupted_entity_id=disrupted_entity_id,
+        )
+    except (ScenarioError, ForecastError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="validate_hard_constraints",
+    description=(
+        "Validate a scenario's hard constraints and dependency-graph rules for "
+        "a proposed change set (default: the committed plan itself, baseline "
+        "validation). The change set uses the apply_changes shape. Returns "
+        "feasible plus machine-readable violations: graph faults first "
+        "(ENTITY_NOT_FOUND, INVALID_DEPENDENCY, INVALID_DEPENDENCY_TYPE, "
+        "CYCLIC_DEPENDENCY) then committed constraints in fixture order "
+        "(currently all_entities_done_before, evaluated as a current-state "
+        "invariant over committed statuses; unsupported types are violations, "
+        "never silently skipped). 'feasible: true' means every graph rule "
+        "passed and every constraint is supported and currently satisfied. "
+        "Invalid requests (unknown scenario, malformed scenario, non-list "
+        "changes, unsupported change action) return a structured error. "
+        "Read-only: statuses and the committed plan are never modified, and "
+        "no scoring or scheduling happens here."
+    ),
+)
+def validate_hard_constraints(
+    scenario_id: str,
+    changes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return a deterministic hard-constraint and graph validation report.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios and malformed
+    change sets; well-formed but invalid proposals return ``feasible: False``
+    with their violations in-band.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        return _validate(scenario, changes=changes)
+    except (ScenarioError, ConstraintError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="compare_recovery_options",
+    description=(
+        "Feasibility-gate, score, rank, and attach delivery forecasts to a "
+        "list of recovery option objects (each needs a unique option_id; "
+        "either an explicit changes list — including substitute: options — or "
+        "a legacy drop-dependency id derived into a remove_dependency change). "
+        "Feasibility is gated with hard-constraint/graph validation first: "
+        "infeasible options are excluded with their violations and are never "
+        "scored or recommended. Score = w_delay*delay + w_cost*cost + w_risk*risk "
+        "+ w_strain*resource_strain + w_count*disruption_count, lower is "
+        "better, ties break by ascending option_id. Default weights: delay 1.0 "
+        "and 0.0 for the rest — the repository supplies no cost/risk data, "
+        "those metrics are never fabricated, and a nonzero weight without a "
+        "value yields an unscorable option, never a zero-filled score. delay "
+        "comes from the relative critical-path forecast, resource_strain from "
+        "workload overload when staffing data exists. recommendation is the "
+        "top feasible, scorable option, or null with outcome "
+        "no_feasible_recovery. Every entry carries its own forecast report. "
+        "Weights, metric keys, and option lists are validated; malformed "
+        "input returns a structured error. Read-only: nothing is committed."
+    ),
+)
+def compare_recovery_options(
+    scenario_id: str,
+    options: list[dict[str, Any]],
+    weights: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the gated, scored, ranked comparison report with forecasts.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios, malformed option
+    lists/ids/changes, and malformed weights or metrics; infeasible options
+    are an in-band ``excluded`` result, never a recommendation.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        return _compare(scenario, options, weights)
+    except (ScenarioError, ConstraintError, ScoringError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="find_substitute_options",
+    description=(
+        "Propose substitute-service recovery options for a disrupted "
+        "prerequisite. A candidate is proposed only when the entity explicitly "
+        "declares 'metadata.substitutes' — a list of entity ids in the same "
+        "scenario; absent or empty declarations return outcome "
+        "'no_substitute_candidates' with missing_data explaining what is "
+        "missing (no shipped fixture declares any). Nothing is inferred from "
+        "names, statuses, resources, or graph structure, and no service, "
+        "availability, compatibility, cost, or risk is invented. Each declared "
+        "candidate becomes one substitute:{prerequisite}->{substitute} option "
+        "whose change set reroutes every dependency edge on the disrupted "
+        "entity (one remove_dependency plus one add_dependency per dependent, "
+        "preserving dependency_type and constraint_parameters), validated "
+        "against hard constraints and graph rules; failures come back as "
+        "feasible: false with reasons and stable violation codes. Outcome is "
+        "one of substitutes_proposed, no_feasible_substitute, or "
+        "no_substitute_candidates. Options carry explicit changes, so they "
+        "flow into compare_recovery_options and recalculate_delivery_forecast "
+        "unchanged (the legacy drop-dependency id parser does not accept "
+        "substitute ids). Unknown scenario/entity ids and malformed "
+        "substitutes declarations return a structured error. Read-only: "
+        "nothing is committed."
+    ),
+)
+def find_substitute_options(
+    scenario_id: str,
+    entity_id: str,
+) -> dict[str, Any]:
+    """Return explicit substitute-candidate options for a disrupted entity.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios/entities and for a
+    malformed ``metadata.substitutes`` declaration; fixtures without declared
+    candidates return ``outcome: "no_substitute_candidates"``.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        return _find_substitutes(scenario, entity_id=entity_id)
+    except (ScenarioError, RecoveryError, ConstraintError) as exc:
         raise ToolError(str(exc)) from exc
 
 

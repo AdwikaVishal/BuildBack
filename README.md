@@ -28,6 +28,24 @@ Implemented so far:
   disruption, one state per entity (`blocked`, `external`, `at_risk`, `healthy`,
   `done`), a reason and evidence path for each, the parallel work that can still
   proceed, and the critical path before/after the disruption.
+- Read-only tool `recalculate_delivery_forecast` — relative critical-path
+  forecast for a proposed change set (steps or `duration_units`, **never
+  calendar dates**), with an in-band `feasible: false` for change sets that
+  would create an invalid graph.
+- Read-only tool `validate_hard_constraints` — hard-constraint and
+  dependency-graph validation of a proposed change set (or the committed plan
+  as baseline), with machine-readable violations.
+- Read-only tool `compare_recovery_options` — feasibility gate, scoring,
+  ranking, and per-option forecasts for recovery options; infeasible options
+  are excluded and never recommended. Default weights score **delay only** —
+  no cost or risk data exists in the repository and none is fabricated.
+- Read-only tool `find_substitute_options` — substitute candidates that a
+  scenario **explicitly declares** via `metadata.substitutes`. No shipped
+  fixture declares any, so fixtures honestly return
+  `no_substitute_candidates`.
+- Recovery engines (`rippleback.forecast`, `rippleback.constraints`,
+  `rippleback.scoring`, `rippleback.comparison`) powering those tools, plus the
+  substitute-candidate engine in `rippleback.recovery`.
 - A typed dependency graph builder (`rippleback.graph`) with explicit edge types
   (`requires_completion`, `requires_arrival_by`, `benefits_from`), invalid-
   reference detection, and **cycle detection**.
@@ -37,12 +55,17 @@ Implemented so far:
   (`project-full`, `travel`) whose resource/effort/duration/slack values are
   **synthetic demo data**.
 
-Explicitly **not implemented** (do not assume they exist): substituting a
-dependency with a mock/alternative service, deferring dependent work, committing
-a reassignment, release-date optimization, delivery forecasts, committing
-changes, AI / Amazon Bedrock, calendar scheduling, frontend, and persisting
-disruptions, recovery options, evaluations, or workload rebalances into the plan.
-The critical path is a relative ranking of dependency chains, not a date.
+Explicitly **not implemented** (do not assume they exist): deferring dependent
+work, committing a reassignment or a recovery back to the plan, release-date
+optimization or any calendar-based scheduling, AI / Amazon Bedrock, a frontend,
+and persisting disruptions, recovery options, forecasts, evaluations, or
+workload rebalances into the plan. Substitution is supported **only** as an
+explicit `metadata.substitutes` declaration read by `find_substitute_options`
+(no shipped fixture declares candidates, and no availability, compatibility,
+cost, or risk for a substitute is ever inferred or invented). Forecasts are
+relative critical-path comparisons in steps or `duration_units` — never
+wall-clock dates. The critical path is a relative ranking of dependency chains,
+not a date.
 
 ## 2. Prerequisites
 
@@ -114,12 +137,25 @@ python -m pytest tests/ -q             # unit tests only
 python -m pytest tests/integration/ -q # MCP integration tests only
 ```
 
+If the package is not installed with `pip install -e .`, run pytest with the
+`src` directory on the path (PowerShell: `$env:PYTHONPATH="src"`; bash:
+`PYTHONPATH=src`).
+
 Unit tests live in `tests/test_scenarios.py` (fixture + validation),
 `tests/test_impact.py` (disruption impact engine), `tests/test_recovery.py`
 (recovery alternatives), `tests/test_evaluation.py` (proposal evaluation),
 `tests/test_workload.py` (workload rebalancing), `tests/test_graph.py` (typed
 graph + cycle detection), `tests/test_critical_path.py` (critical path), and
 `tests/test_triage.py` (blocker triage + recovery view).
+
+Person 3 engine tests live in `tests/test_forecast.py` (delivery forecast),
+`tests/test_constraints.py` (hard-constraint validation),
+`tests/test_scoring.py` (option scoring/ranking),
+`tests/test_comparison.py` (option comparison with forecasts), and
+`tests/test_substitute_recovery.py` (substitute-candidate options).
+`tests/test_milestone6_integration.py` covers the MCP tool registration
+contract, the server wrappers, and the end-to-end payment-API-outage engine
+pipeline on real fixtures.
 
 The integration test (`tests/integration/test_mcp_server.py`) is a **real,
 non-mocked** end-to-end test: it spawns a live server subprocess and talks to
@@ -737,8 +773,9 @@ the SDK's `ToolError` so the message reaches the model/client.
   absorption). No dynamic plan loading or editing.
 - **Healthy committed plan**: `status` is always `healthy` and the committed
   `disruptions` is always `[]`. Every analysis tool (simulation, recovery,
-  evaluation, workload rebalancing, blocker triage) is hypothetical/read-only and
-  is never persisted.
+  evaluation, workload rebalancing, blocker triage, forecasting, constraint
+  validation, option comparison, substitute discovery) is hypothetical/read-only
+  and is never persisted.
 - **`simulate_disruption` impact model is simplified**: any transitively affected
   entity is reported as `blocked`, regardless of its committed status (a
   completed entity can appear as blocked in a simulation). For committed-status-
@@ -747,9 +784,15 @@ the SDK's `ToolError` so the message reaches the model/client.
   the hard/soft edge semantics are demo choices; `external` is read from
   `metadata.external` (no integrations); delay propagation is deterministic
   topological arithmetic, not a scheduler.
-- **Recovery semantics are narrow**: an "alternative dependency" currently means
-  removing the broken edge only. No substitution candidates, effort/cost
-  ranking, or multi-step recovery plans.
+- **Recovery semantics are narrow**: an "alternative dependency" means removing
+  the broken edge; substitution is a separate, explicitly declared option —
+  `find_substitute_options` only proposes candidates a scenario lists in
+  `metadata.substitutes` (no shipped fixture declares any, and compatibility,
+  availability, cost, or risk for a candidate are never invented). There is no
+  multi-step recovery planning, and ranking scores delay only by default: the
+  repository supplies no cost or risk data, so a nonzero weight on those
+  metrics without caller-supplied values yields an unscorable option, never a
+  fabricated score.
 - **Evaluation is structural only**: `evaluate_recovery_plan` answers whether a
   proposal is *applicable* (edge exists, references resolve, version matches).
   It does **not** assess business readiness — that is deliberately out of scope
@@ -759,10 +802,9 @@ the SDK's `ToolError` so the message reaches the model/client.
   scenario has resources; capacity/effort are abstract integer `work_units` with
   no time dimension. Skills, roles, availability, partial moves, and scheduling
   are unmodeled; suggestions are greedy and may relocate more than the minimum.
-  No delivery date or forecast is ever produced.
-- **No writes**: no committing a reassignment, release-date optimization,
-  delivery forecasts, or committing a recovery/evaluation/rebalance back to the
-  plan.
+  The workload engine never produces a delivery date.
+- **No writes**: no committing a reassignment, release-date optimization, or
+  committing a recovery/evaluation/rebalance/forecast back to the plan.
 - **No AI**: no LLM, no Amazon Bedrock, no inference of any kind.
 - **No scheduling**: the critical path is a dependency-chain ranking, not a
   timeline; no calendars, working hours, or dates.
@@ -771,9 +813,81 @@ the SDK's `ToolError` so the message reaches the model/client.
   it publicly.
 - **Validation is structural**: schema/ref checks only; no semantic rules yet.
 
+## 17. Forecast, constraint, comparison, and substitute tools (Milestone 6)
+
+Four read-only tools expose the Person 3 recovery engines. All are
+hypothetical: the committed plan, statuses, dependencies, and `version` are
+never modified, and every report is deterministic and JSON-serializable.
+
+### `recalculate_delivery_forecast(scenario_id, changes=None, option_id=None, disrupted_entity_id=None)`
+
+Compares the committed critical path with the critical path after a proposed
+change set (the `apply_changes` shape: `remove_dependency`/`add_dependency`
+entries), or converts a legacy `drop-dependency:{dependent}->{prerequisite}`
+`option_id` into the equivalent removal. `delay_delta` = forecast length −
+baseline length in the reported `unit` — `steps` or `duration_units` — **never
+a calendar date**. A well-formed change set that would create an invalid graph
+(cycle, unknown reference, self-dependency) returns `feasible: false` with the
+stable graph error code and `null` forecast fields; it is never reported as a
+valid forecast. Substitute option ids (`substitute:...`) are rejected with a
+structured error directing the caller to pass the option's explicit `changes`
+(the legacy id parser only understands `drop-dependency:`).
+
+### `validate_hard_constraints(scenario_id, changes=None)`
+
+Validates hard constraints and graph rules for a proposed change set
+(`changes=None` validates the committed plan as baseline). Returns `feasible`
+plus `violations`: graph faults first (`ENTITY_NOT_FOUND`,
+`INVALID_DEPENDENCY`, `INVALID_DEPENDENCY_TYPE`, `CYCLIC_DEPENDENCY`), then
+committed constraints in fixture order. The only supported constraint type is
+`all_entities_done_before`, evaluated as a **current-state invariant** over
+committed statuses (a listed gate must not be `done` while any other entity is
+not `done`); unsupported types are reported as violations, never silently
+skipped. `feasible: true` means every graph rule passed and every constraint
+was supported and currently satisfied. No schedule or calendar is modeled.
+
+### `compare_recovery_options(scenario_id, options, weights=None)`
+
+Gates each option with `validate_hard_constraints`, scores, ranks, and attaches
+a per-option forecast. Score formula (lower is better):
+
+```
+score = w_delay·delay + w_cost·cost + w_risk·risk
+      + w_strain·resource_strain + w_count·disruption_count
+```
+
+Default weights: `delay` **1.0**, everything else **0.0**. `delay` is derived
+from the forecast delta; `resource_strain` from workload overload when staffing
+data exists; `cost`, `risk`, and `disruption_count` have **no source in the
+repository** and are never fabricated — a nonzero weight without a supplied
+value makes an option *unscorable* (excluded with a reason), never scored with
+a fabricated zero. Infeasible options are excluded with their violations and
+are **never recommended**. `recommendation` is the top feasible, scorable
+option (ties break by ascending `option_id`) or `null` with
+`outcome: "no_feasible_recovery"`. Options may carry explicit `changes`
+(including substitute options) or use the legacy `drop-dependency:` id.
+
+### `find_substitute_options(scenario_id, entity_id)`
+
+Proposes substitute-service options **only** from an explicit
+`metadata.substitutes` declaration on the disrupted entity — a list of entity
+ids in the same scenario. Nothing is inferred from names, statuses, resources,
+or graph structure. Each declared candidate becomes one
+`substitute:{prerequisite}->{substitute}` option whose change set reroutes
+every dependency edge on the disrupted entity (one `remove_dependency` plus one
+`add_dependency` per dependent, preserving `dependency_type` and
+`constraint_parameters`), validated against hard constraints and graph rules.
+Outcomes: `substitutes_proposed`, `no_feasible_substitute`, or
+`no_substitute_candidates` (with `missing_data` explaining what is absent).
+**No shipped fixture declares `metadata.substitutes`**, so real fixtures
+return `no_substitute_candidates`; no service, availability, compatibility,
+cost, or risk is ever invented. Options carry explicit `changes`, so they flow
+into `compare_recovery_options` and `recalculate_delivery_forecast` unchanged.
+
 ## Data contract
 
 See [`docs/data-contract.md`](docs/data-contract.md) for the scenario, entity,
 dependency, disruption-simulation, recovery-alternative, proposal-evaluation,
-workload-rebalancing, blocker-triage, and critical-path schemas and open
-questions for the team.
+workload-rebalancing, blocker-triage, critical-path, forecast,
+constraint-validation, scoring/ranking, comparison, and substitute-candidate
+schemas and open questions for the team.
