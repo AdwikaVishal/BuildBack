@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-surface-900 text-gray-100;
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  }
+  body {
+    @apply antialiased;
+  }
+  * {
+    @apply box-border;
+  }
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-800;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-400 rounded-full;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface-800 border border-surface-600 rounded-lg;
+  }
+  .card-header {
+    @apply px-4 py-3 border-b border-surface-600 flex items-center justify-between;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-accent-blue text-white hover:bg-blue-600;
+  }
+  .btn-danger {
+    @apply btn bg-accent-red text-white hover:bg-red-600;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent border border-surface-500 text-gray-300 hover:bg-surface-600;
+  }
+  .btn-success {
+    @apply btn bg-accent-green text-white hover:bg-emerald-600;
+  }
+  .tag-blocked   { @apply badge bg-red-900/60 text-red-300 border border-red-800; }
+  .tag-external  { @apply badge bg-orange-900/60 text-orange-300 border border-orange-800; }
+  .tag-at_risk   { @apply badge bg-yellow-900/60 text-yellow-300 border border-yellow-800; }
+  .tag-healthy   { @apply badge bg-emerald-900/60 text-emerald-300 border border-emerald-800; }
+  .tag-done      { @apply badge bg-gray-800/80 text-gray-400 border border-gray-700; }
+  .tag-pending   { @apply badge bg-purple-900/60 text-purple-300 border border-purple-800; }
+  .tag-in_progress { @apply badge bg-blue-900/60 text-blue-300 border border-blue-800; }
+  .tag-simulated { @apply badge bg-amber-900/60 text-amber-300 border border-amber-800; }
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  font-family: 'JetBrains Mono', monospace;
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__background {
+  background-color: #0f1629;
+}
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+.react-flow__controls {
+  background: #141d35;
+  border: 1px solid #1a2440;
+  border-radius: 8px;
+}
+.react-flow__controls-button {
+  background: #141d35;
+  border-color: #1a2440;
+  color: #9ca3af;
+}
+.react-flow__controls-button:hover {
+  background: #1a2440;
+}
+.react-flow__minimap {
+  background: #0f1629;
+  border: 1px solid #1a2440;
+  border-radius: 8px;
+}
