@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../store/appStore';
 import { checkConnection } from '../api/mcpClient';
-import { SCENARIO_INFO, SCENARIO_IDS } from '../data/scenarios';
-import type { DashboardView, ScenarioId } from '../types';
+import { scenarioLabel, scenarioDescription } from '../data/scenarios';
+import type { DashboardView } from '../types';
 
 const VIEW_TITLES: Record<DashboardView, { title: string; crumb: string }> = {
   overview:    { title: 'Overview',          crumb: 'Control Center' },
@@ -36,12 +36,13 @@ interface Props {
 
 export function TopHeader({ onOpenMobileNav }: Props) {
   const [state, dispatch] = useApp();
-  const { activeView, activeScenarioId, planData, disruption, mcpStatus, assistantOpen, loading } = state;
+  const { activeView, activeScenarioId, scenarios, planData, disruption, mcpStatus, assistantOpen, loading } = state;
   const [checking, setChecking] = useState(false);
   const [scenarioMenuOpen, setScenarioMenuOpen] = useState(false);
 
   const view = VIEW_TITLES[activeView];
-  const info = SCENARIO_INFO[activeScenarioId];
+  const activeSummary = scenarios.find((s) => s.scenario_id === activeScenarioId);
+  const activeLabel = scenarioLabel(activeScenarioId, activeSummary);
   const isLoadingPlan = loading['loadPlan'] ?? false;
 
   async function handlePing() {
@@ -92,7 +93,7 @@ export function TopHeader({ onOpenMobileNav }: Props) {
           title="Switch scenario"
         >
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-ink leading-none truncate">{info?.label ?? activeScenarioId}</p>
+            <p className="text-xs font-semibold text-ink leading-none truncate">{activeLabel}</p>
             <p className="text-[10px] text-ink-muted leading-none mt-1 font-mono truncate">
               {planData ? `v${planData.version} · ${planData.status}` : isLoadingPlan ? 'loading…' : 'no plan loaded'}
             </p>
@@ -106,24 +107,26 @@ export function TopHeader({ onOpenMobileNav }: Props) {
               role="listbox"
               className="absolute right-0 mt-1 z-50 w-64 rounded-card border border-surface-700 bg-surface-850 shadow-2xl shadow-black/60 overflow-hidden animate-panel-in"
             >
-              {SCENARIO_IDS.map((id) => (
-                <li key={id}>
+              {scenarios.map((s) => (
+                <li key={s.scenario_id}>
                   <button
                     role="option"
-                    aria-selected={id === activeScenarioId}
+                    aria-selected={s.scenario_id === activeScenarioId}
                     className={clsx(
                       'w-full text-left px-3.5 py-2.5 transition-colors',
-                      id === activeScenarioId ? 'bg-acid/10' : 'hover:bg-surface-800',
+                      s.scenario_id === activeScenarioId ? 'bg-acid/10' : 'hover:bg-surface-800',
                     )}
                     onClick={() => {
-                      dispatch({ type: 'SET_SCENARIO', scenarioId: id as ScenarioId });
+                      dispatch({ type: 'SET_SCENARIO', scenarioId: s.scenario_id });
                       setScenarioMenuOpen(false);
                     }}
                   >
-                    <p className={clsx('text-xs font-semibold', id === activeScenarioId ? 'text-acid' : 'text-ink')}>
-                      {SCENARIO_INFO[id]?.label ?? id}
+                    <p className={clsx('text-xs font-semibold', s.scenario_id === activeScenarioId ? 'text-acid' : 'text-ink')}>
+                      {scenarioLabel(s.scenario_id, s)}
                     </p>
-                    <p className="text-[10px] text-ink-muted mt-0.5 leading-relaxed">{SCENARIO_INFO[id]?.description}</p>
+                    <p className="text-[10px] text-ink-muted mt-0.5 leading-relaxed">
+                      {scenarioDescription(s) || s.scenario_id}
+                    </p>
                   </button>
                 </li>
               ))}

@@ -30,6 +30,7 @@ import type {
   EventType,
   ChangeItem,
   ScenarioId,
+  ScenarioSummary,
   ScoringWeights,
 } from '../types';
 
@@ -76,6 +77,29 @@ function _setStatus(patch: Partial<MCPConnectionStatus>) {
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
+
+/**
+ * Parse a response body as JSON and raise a clear, actionable error otherwise.
+ * A stale or missing backend route returns plain "Not Found" text, which would
+ * otherwise surface as the opaque "Unexpected token 'N' … is not valid JSON".
+ */
+async function readJson<T>(resp: Response, endpoint: string): Promise<T> {
+  const text = await resp.text();
+  let parsed: T & { error?: string };
+  try {
+    parsed = (text ? JSON.parse(text) : {}) as T & { error?: string };
+  } catch {
+    const snippet = text.trim().slice(0, 120) || '<empty response>';
+    throw new Error(
+      `${endpoint} returned non-JSON (HTTP ${resp.status}): ${snippet}`,
+    );
+  }
+  if (!resp.ok) {
+    throw new Error(parsed?.error ?? `${endpoint} failed (HTTP ${resp.status})`);
+  }
+  if (parsed?.error) throw new Error(parsed.error);
+  return parsed;
+}
 
 /**
  * Calls a single MCP tool via the /api/mcp shim.
@@ -215,6 +239,27 @@ export async function checkConnection(): Promise<MCPConnectionStatus> {
   }
 }
 
+// ── Scenario list (live from the adapter) ────────────────────────────────────
+
+/**
+ * Fetch the scenarios the backend knows about (seeded fixtures + imported PM
+ * plans). The dashboard builds its scenario selector entirely from this list;
+ * no scenario ids are hardcoded in the frontend.
+ */
+export async function fetchScenarioSummaries(): Promise<ScenarioSummary[]> {
+  if (MOCK_MODE) {
+    return [{ scenario_id: 'demo-release-plan', plan_id: 'Payment API release', source: 'seeded' }];
+  }
+  const resp = await fetch('/api/status', { signal: AbortSignal.timeout(10_000) });
+  const body = await readJson<{ scenarios?: { ids?: string[]; items?: ScenarioSummary[] } }>(
+    resp,
+    '/api/status',
+  );
+  if (body.scenarios?.items?.length) return body.scenarios.items;
+  // Older adapters only return ids — degrade gracefully.
+  return (body.scenarios?.ids ?? []).map((scenario_id) => ({ scenario_id }));
+}
+
 // ── Tool discovery (live from the MCP server via the adapter) ────────────────
 
 /**
@@ -229,10 +274,7 @@ export async function listTools(refresh = false): Promise<MCPToolInfo[]> {
   }
   const url = refresh ? '/api/mcp/tools?refresh=1' : '/api/mcp/tools';
   const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-  const body = await resp.json() as { tools?: MCPToolInfo[]; error?: string };
-  if (!resp.ok || body.error) {
-    throw new Error(body.error ?? `HTTP ${resp.status}`);
-  }
+  const body = await readJson<{ tools?: MCPToolInfo[] }>(resp, '/api/mcp/tools');
   return body.tools ?? [];
 }
 

@@ -1,0 +1,37 @@
+# Build context exclusions for the RippleBack container image.
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+build
+dist
+.idea
+.vscode
+
+# Secrets and local state: never bake these into an image.
+.env
+.env.*
+!.env.example
+!frontend/.env.example
+*.db
+*.db-wal
+*.db-shm
+rippleback.db*
+/data
+
+# Frontend deps are reinstalled inside the image. The built output IS needed
+# at runtime, so frontend/dist is intentionally NOT excluded here.
+frontend/node_modules
+frontend/.vite
+
+# Docs are copied explicitly; ignore everything else at the top level.
+project_progress.json
+DEMO_RUNBOOK.md
+requirements.txt

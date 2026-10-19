@@ -26,8 +26,14 @@ import {
   MOCK_TOOLS,
 } from './mockFixtures';
 
-/** Master switch: true = every page renders captured mock data. */
-export const MOCK_MODE = true;
+/**
+ * Master switch: true = every page renders captured mock data.
+ *
+ * Off by default so the dashboard always reflects the live backend. Set
+ * VITE_MOCK_MODE=true (see frontend/.env.example) to run fully offline for
+ * screenshots/demos.
+ */
+export const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true';
 
 // ── Tool result registry ──────────────────────────────────────────────────────
 

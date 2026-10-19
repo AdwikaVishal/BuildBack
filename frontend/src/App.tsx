@@ -30,7 +30,7 @@ import { ScheduleView } from './components/ScheduleView';
 import { ActivityView } from './components/ActivityView';
 import { ErrorState } from './components/ui/ErrorState';
 import { Spinner } from './components/ui/Spinner';
-import { getPlanState, checkConnection } from './api/mcpClient';
+import { getPlanState, checkConnection, fetchScenarioSummaries } from './api/mcpClient';
 import { clsx } from 'clsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +68,9 @@ function Dashboard() {
     assistantOpen,
     loading,
     errors,
+    scenarios,
+    scenariosLoading,
+    scenariosError,
   } = state;
 
   const { run: runPlan } = useAsyncOp('loadPlan');
@@ -111,9 +114,30 @@ function Dashboard() {
     }
   }, [dispatch]);
 
+  // Load the scenario list from the backend so the selector is never
+  // hardcoded. Runs on mount and again whenever the MCP connection recovers.
+  useEffect(() => {
+    let cancelled = false;
+    dispatch({ type: 'SET_SCENARIOS_LOADING', loading: true });
+    fetchScenarioSummaries()
+      .then((scenarios) => {
+        if (cancelled) return;
+        dispatch({ type: 'SET_SCENARIOS', scenarios });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        dispatch({
+          type: 'SET_SCENARIOS_ERROR',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    return () => { cancelled = true; };
+  }, [mcpStatus.connected, dispatch]);
+
   // Load plan from the backend (scenario change or reconnect). On failure the
   // plan stays null and the views show an honest error — no mock plan.
   useEffect(() => {
+    if (!activeScenarioId) return;
     let cancelled = false;
     runPlan(async () => {
       try {
@@ -166,7 +190,21 @@ function Dashboard() {
 
   // Honest "no plan" gate for views that need scenario entities
   const planGate = !scenario && (
-    planLoading ? (
+    scenariosLoading && scenarios.length === 0 ? (
+      <div className="flex flex-col items-center gap-3 py-20">
+        <Spinner className="w-7 h-7 text-acid" />
+        <span className="text-sm text-ink-muted">Loading scenarios…</span>
+      </div>
+    ) : scenarios.length === 0 ? (
+      <ErrorState
+        title="No scenarios available"
+        message={scenariosError ?? 'The backend reported no scenarios.'}
+        hint={
+          <>Load a plan with <span className="font-mono">python -m rippleback seed-sample samples</span> or configure a PM integration, then retry.</>
+        }
+        onRetry={() => setPlanRetry((k) => k + 1)}
+      />
+    ) : planLoading ? (
       <div className="flex flex-col items-center gap-3 py-20">
         <Spinner className="w-7 h-7 text-acid" />
         <span className="text-sm text-ink-muted">Loading plan…</span>

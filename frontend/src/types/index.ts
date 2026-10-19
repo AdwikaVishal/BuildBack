@@ -652,11 +652,22 @@ export interface ChatMessage {
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 
-export type ScenarioId =
-  | 'demo-release-plan'
-  | 'demo-release-plan-staffed'
-  | 'project-full'
-  | 'travel';
+/**
+ * Scenario ids are dynamic strings: the backend exposes whichever seeded
+ * fixtures and imported PM plans exist, so nothing is hardcoded here.
+ */
+export type ScenarioId = string;
+
+/** Light metadata from GET /api/status `scenarios.items`. */
+export interface ScenarioSummary {
+  scenario_id: string;
+  plan_id?: string;
+  source?: string;
+  version?: number;
+  status?: string;
+  entity_count?: number;
+  open_disruptions?: number;
+}
 
 export type DashboardView =
   | 'overview'

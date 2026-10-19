@@ -1,11 +1,11 @@
 """Milestone 6: MCP tool registration, wrapper contracts, and engine pipeline.
 
-Three layers, all deterministic and read-only:
+Three layers, all deterministic:
 
 1. Static registration checks over ``src/rippleback/server.py`` (AST — no
    ``mcp`` import needed): the original six tools keep their exact names and
-   signatures, the four Milestone 6 tools are registered exactly once, and no
-   engine module imports the MCP server.
+   signatures, the four Milestone 6 tools and the gated write tools are
+   registered exactly once, and no engine module imports the MCP server.
 2. Engine-level payment-API-outage pipeline on real fixtures: impact →
    recovery options → hard-constraint gate → forecast → comparison/ranking →
    substitutes, including invalid-graph, immutability, determinism, and
@@ -77,6 +77,46 @@ NEW_TOOLS = {
     ],
 }
 
+# Read-only listing + the five gated write tools (production write path).
+GATED_TOOLS = {
+    "list_scenarios": [],
+    "dry_run_recovery_plan": [
+        "scenario_id",
+        "expected_version",
+        "option_id",
+        "changes",
+        "kind",
+    ],
+    "record_disruption": [
+        "scenario_id",
+        "entity_id",
+        "event_type",
+        "reason",
+        "severity",
+        "delay_minutes",
+        "idempotency_key",
+        "actor",
+    ],
+    "resolve_disruption": ["disruption_id", "idempotency_key", "actor"],
+    "commit_recovery_plan": [
+        "scenario_id",
+        "expected_version",
+        "confirm_token",
+        "option_id",
+        "changes",
+        "idempotency_key",
+        "actor",
+    ],
+    "commit_reassignment": [
+        "scenario_id",
+        "expected_version",
+        "confirm_token",
+        "changes",
+        "idempotency_key",
+        "actor",
+    ],
+}
+
 
 def _registered_tools() -> dict[str, list[str]]:
     """Map tool name -> parameter names for every ``@mcp.tool`` in server.py."""
@@ -110,7 +150,7 @@ def _registered_tools() -> dict[str, list[str]]:
 class TestToolRegistration:
     def test_all_tools_registered_exactly_once(self) -> None:
         registered = _registered_tools()
-        expected = set(ORIGINAL_TOOLS) | set(NEW_TOOLS)
+        expected = set(ORIGINAL_TOOLS) | set(NEW_TOOLS) | set(GATED_TOOLS)
         assert set(registered) == expected
         assert all(len(calls) == 1 for calls in registered.values()), (
             "duplicate registration: "
@@ -125,6 +165,11 @@ class TestToolRegistration:
     def test_four_new_tool_signatures(self) -> None:
         registered = _registered_tools()
         for name, params in NEW_TOOLS.items():
+            assert registered[name] == [params], name
+
+    def test_gated_write_tool_signatures(self) -> None:
+        registered = _registered_tools()
+        for name, params in GATED_TOOLS.items():
             assert registered[name] == [params], name
 
     def test_engine_modules_do_not_import_mcp_or_the_server(self) -> None:

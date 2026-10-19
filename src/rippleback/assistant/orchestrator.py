@@ -28,7 +28,10 @@ Rules enforced here:
   invented; a failed step stops the chain with an honest explanation.
 * A maximum number of tool calls per user turn bounds any loop.
 * Nothing is ever written back to the committed plan; every reply labels
-  hypothetical results as hypothetical.
+  hypothetical results as hypothetical. Enforced here too: the write tools
+  (:data:`~rippleback.assistant.providers.NON_READ_ONLY_TOOLS`) are refused by
+  :meth:`Assistant._run_tool` before any MCP call, so chat stays a read-only
+  analysis/proposal surface even if a future workflow asked for them.
 """
 
 from __future__ import annotations
@@ -45,6 +48,7 @@ from rippleback.assistant.explain import (
     explain_tool_error,
 )
 from rippleback.assistant.providers import (
+    NON_READ_ONLY_TOOLS,
     DeterministicProvider,
     ProviderReport,
     make_provider,
@@ -296,6 +300,22 @@ class Assistant:
     # ── Tool execution ───────────────────────────────────────────────────────
 
     async def _run_tool(self, tool: str, arguments: dict[str, Any]) -> ChatStep:
+        if tool in NON_READ_ONLY_TOOLS:
+            # Read-only allowlist: chat analyzes and proposes; it never touches
+            # the write path (not even the token-issuing dry run).
+            message = (
+                f"read-only assistant: {tool!r} would change committed state. "
+                "I can analyze the plan and propose recovery options; committing "
+                "happens outside chat, through the dashboard's dry-run → confirm "
+                "→ commit flow (or the gated write API), never from chat."
+            )
+            return ChatStep(
+                tool=tool,
+                arguments=arguments,
+                status="error",
+                error=message,
+                summary=message,
+            )
         if self._call_count >= self.max_tool_calls:
             return ChatStep(tool=tool, arguments=arguments, status="skipped",
                             error="per-turn tool-call limit reached")
@@ -723,7 +743,9 @@ class Assistant:
             "- \"Generate a recovery schedule after this disruption.\"\n\n"
             f"Live tools on the server ({len(tools)}):\n\n{listing}\n\n"
             "_Everything I run is hypothetical and read-only — the committed plan "
-            "is never modified._"
+            "is never modified, and I refuse the server's write tools "
+            "(dry-run/commit/record/resolve): committing goes through the "
+            "dashboard's confirm flow, never chat._"
         )
 
 

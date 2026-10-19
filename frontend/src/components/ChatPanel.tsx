@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useApp, useAppDispatch } from '../store/appStore';
 import { sendChatMessage, AssistantError } from '../api/assistantClient';
-import { SCENARIO_INFO } from '../data/scenarios';
+import { scenarioLabel as scenarioDisplayLabel } from '../data/scenarios';
 import type { ChatMessage, ChatStep } from '../types';
 import { clsx } from 'clsx';
 
@@ -242,7 +242,7 @@ const SUGGESTIONS = [
 export function ChatPanel() {
   const [state] = useApp();
   const dispatch = useAppDispatch();
-  const { chat, activeScenarioId, mcpStatus } = state;
+  const { chat, activeScenarioId, scenarios, mcpStatus } = state;
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastUserMessage = useRef<string | null>(null);
@@ -303,7 +303,10 @@ export function ChatPanel() {
   const lastMessage = chat.messages[chat.messages.length - 1];
   const lastFailed = !chat.busy && lastMessage?.role === 'assistant' && lastMessage.error;
 
-  const scenarioLabel = SCENARIO_INFO[activeScenarioId]?.label ?? activeScenarioId;
+  const scenarioLabel = scenarioDisplayLabel(
+    activeScenarioId,
+    scenarios.find((s) => s.scenario_id === activeScenarioId),
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0">

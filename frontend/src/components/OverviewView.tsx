@@ -12,16 +12,17 @@ import { useApp } from '../store/appStore';
 import { MetricCard } from './ui/MetricCard';
 import { EmptyState } from './ui/EmptyState';
 import { StatusBadge } from './ui/StatusBadge';
-import { SCENARIO_INFO } from '../data/scenarios';
+import { scenarioLabel } from '../data/scenarios';
 
 export function OverviewView() {
   const [state, dispatch] = useApp();
   const {
-    activeScenarioId, planData, planError, disruption, triageResult,
+    activeScenarioId, scenarios, planData, planError, disruption, triageResult,
     comparisonResult, scheduleResult, mcpStatus, selectedOptionId,
   } = state;
 
-  const info = SCENARIO_INFO[activeScenarioId];
+  const activeSummary = scenarios.find((s) => s.scenario_id === activeScenarioId);
+  const activeLabel = scenarioLabel(activeScenarioId, activeSummary);
   const connected = mcpStatus.connected;
 
   const blocked = triageResult?.summary.blocked;
@@ -37,7 +38,7 @@ export function OverviewView() {
       <section className="relative overflow-hidden rounded-card border border-surface-700 bg-surface-850 orb-accent">
         <div className="absolute inset-0 grid-accent" aria-hidden="true" />
         <div className="relative px-5 sm:px-8 py-6 sm:py-8">
-          <p className="label-tech mb-3">Recovery Control · {info?.label ?? activeScenarioId}</p>
+          <p className="label-tech mb-3">Recovery Control · {activeLabel}</p>
           <h2 className="font-display font-bold text-ink leading-[0.95] tracking-tight text-3xl sm:text-4xl xl:text-5xl">
             WHEN SYSTEMS FAIL.
             <br />

@@ -35,6 +35,22 @@ from typing import Any, Protocol
 
 from rippleback.assistant.intents import ALL_INTENTS, Intent, parse_intent
 
+#: MCP tools that would change committed state (including the token-issuing
+#: dry run). The assistant is a strictly read-only surface: it analyzes and
+#: proposes, but never invokes these — commits happen outside chat, through
+#: the dashboard's dry-run → confirm → commit flow or the gated write API.
+#: Hidden from the model's catalog and refused by the orchestrator as
+#: defense-in-depth.
+NON_READ_ONLY_TOOLS = frozenset(
+    {
+        "dry_run_recovery_plan",
+        "record_disruption",
+        "resolve_disruption",
+        "commit_recovery_plan",
+        "commit_reassignment",
+    }
+)
+
 
 class AssistantProvider(Protocol):
     """Anything that can map a user message to an Intent."""
@@ -191,13 +207,20 @@ class BedrockProvider:
             "Allowed intents: " + ", ".join(ALL_INTENTS) + ". "
             "Only extract parameters literally present in the message (scenario, "
             "entity mention, delay_minutes, severity, option_id, "
-            "expected_plan_version, reason). Never invent ids."
+            "expected_plan_version, reason). Never invent ids. "
+            "The assistant never modifies the committed plan: write tools "
+            "(dry_run_recovery_plan, record_disruption, resolve_disruption, "
+            "commit_recovery_plan, commit_reassignment) are out of scope — do "
+            "not select or imply them; committing happens outside chat via the "
+            "dashboard's confirm flow."
         )
 
     def _build_prompt(self, message: str, context: dict[str, Any], tool_catalog: list[dict]) -> str:
+        catalog = [entry for entry in tool_catalog if entry["name"] not in NON_READ_ONLY_TOOLS]
         lines = [
-            "Live MCP tools (only these may be used):",
-            json.dumps(tool_catalog),
+            "Live MCP tools (read-only; only these may be used — write tools "
+            "are excluded because the assistant never changes committed state):",
+            json.dumps(catalog),
         ]
         if context.get("scenario_id"):
             lines.append(f"Currently selected scenario: {context['scenario_id']}")

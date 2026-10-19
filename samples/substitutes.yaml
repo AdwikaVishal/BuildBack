@@ -1,0 +1,9 @@
+# Sample substitute catalog for `rippleback seed-sample` / SUBSTITUTES_FILE /
+# POST /api/substitutes/import.
+#
+# Format: scenario_id -> entity_id -> [substitute entity ids]. Substitutes must
+# be entities that already exist in the same scenario; unknown ids are rejected
+# (nothing is inferred).
+sample-payments-release:
+  payment-gateway:
+    - backup-gateway

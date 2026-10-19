@@ -1,0 +1,63 @@
+# Sample plan for `rippleback seed-sample`.
+#
+# A realistic-but-fictional payments release you can sync, commit against, and
+# disrupt without touching any of the built-in demo fixtures. It is DB-only
+# (imported as the first stored version of scenario `sample-payments-release`),
+# so the seeded in-process scenarios and the test suite are unaffected.
+scenario_id: sample-payments-release
+plan_id: plan-sample-payments-release
+version: 1
+status: healthy
+release_entity: release-checklist
+entities:
+  - id: payment-gateway
+    name: Payment gateway upgrade
+    status: in_progress
+    effort: 5
+    duration: 6
+    assignee: alice
+  - id: backup-gateway
+    name: Backup gateway (standby)
+    status: pending
+    effort: 3
+    duration: 4
+    assignee: alice
+  - id: checkout-ui
+    name: Checkout UI integration
+    status: pending
+    effort: 4
+    duration: 4
+    assignee: bob
+  - id: fraud-review
+    name: Fraud review workflow
+    status: pending
+    effort: 2
+    duration: 2
+    assignee: bob
+  - id: release-checklist
+    name: Release checklist
+    status: pending
+    effort: 1
+    duration: 1
+    assignee: bob
+resources:
+  - id: alice
+    name: Alice (synthetic)
+    capacity: 3
+  - id: bob
+    name: Bob (synthetic)
+    capacity: 3
+dependencies:
+  - dependent: checkout-ui
+    prerequisite: payment-gateway
+  - dependent: fraud-review
+    prerequisite: payment-gateway
+  - dependent: release-checklist
+    prerequisite: checkout-ui
+  - dependent: release-checklist
+    prerequisite: fraud-review
+constraints:
+  - type: all_entities_done_before
+    entity_ids:
+      - release-checklist
+    description: Every other entity must be done before release-checklist.

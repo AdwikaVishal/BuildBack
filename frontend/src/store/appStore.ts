@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
 import type {
   ScenarioId,
+  ScenarioSummary,
   DashboardView,
   Scenario,
   ImpactResult,
@@ -72,6 +73,9 @@ export const STAGE_LABELS: Record<WorkflowStage, string> = {
 export interface AppState {
   // Scenario selection
   activeScenarioId: ScenarioId;
+  scenarios: ScenarioSummary[];
+  scenariosLoading: boolean;
+  scenariosError: string | null;
   planData: Scenario | null;
   planLoading: boolean;
   planError: string | null;
@@ -126,7 +130,10 @@ export interface AppState {
 }
 
 const INITIAL_STATE: AppState = {
-  activeScenarioId: 'project-full',
+  activeScenarioId: '',
+  scenarios: MOCK_MODE ? [{ scenario_id: 'demo-release-plan', plan_id: 'Payment API release', source: 'seeded' }] : [],
+  scenariosLoading: false,
+  scenariosError: null,
   planData: MOCK_MODE ? MOCK_PLAN : null,
   planLoading: false,
   planError: null,
@@ -143,8 +150,8 @@ const INITIAL_STATE: AppState = {
       }
     : {
         active: false,
-        entityId: 'payment-api',
-        reason: 'Service outage — Payment API is down',
+        entityId: '',
+        reason: '',
         severity: 'high',
         eventType: 'service_outage',
         simulated: false,
@@ -171,6 +178,9 @@ const INITIAL_STATE: AppState = {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export type AppAction =
+  | { type: 'SET_SCENARIOS'; scenarios: ScenarioSummary[] }
+  | { type: 'SET_SCENARIOS_LOADING'; loading: boolean }
+  | { type: 'SET_SCENARIOS_ERROR'; error: string }
   | { type: 'SET_SCENARIO'; scenarioId: ScenarioId }
   | { type: 'SET_PLAN_LOADING'; loading: boolean }
   | { type: 'SET_PLAN'; plan: Scenario }
@@ -200,6 +210,30 @@ export type AppAction =
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'SET_SCENARIOS': {
+      const ids = action.scenarios.map((s) => s.scenario_id);
+      const keepCurrent = ids.includes(state.activeScenarioId);
+      const nextId = keepCurrent ? state.activeScenarioId : (ids[0] ?? '');
+      if (keepCurrent) {
+        return { ...state, scenarios: action.scenarios, scenariosLoading: false, scenariosError: null };
+      }
+      // The previously active scenario vanished (e.g. first load, or a PM plan
+      // was removed): reset the plan and every derived slice.
+      return {
+        ...INITIAL_STATE,
+        scenarios: action.scenarios,
+        activeScenarioId: nextId,
+        mcpStatus: state.mcpStatus,
+        chat: state.chat,
+        assistantOpen: state.assistantOpen,
+        sidebarCollapsed: state.sidebarCollapsed,
+        activeView: state.activeView,
+      };
+    }
+    case 'SET_SCENARIOS_LOADING':
+      return { ...state, scenariosLoading: action.loading };
+    case 'SET_SCENARIOS_ERROR':
+      return { ...state, scenariosError: action.error, scenariosLoading: false };
     case 'SET_SCENARIO':
       // Conversation history, MCP status, and layout chrome survive scenario
       // switches; the scenario id is sent with each chat message, not baked
@@ -207,6 +241,7 @@ function reducer(state: AppState, action: AppAction): AppState {
       return {
         ...INITIAL_STATE,
         activeScenarioId: action.scenarioId,
+        scenarios: state.scenarios,
         mcpStatus: state.mcpStatus,
         chat: state.chat,
         assistantOpen: state.assistantOpen,

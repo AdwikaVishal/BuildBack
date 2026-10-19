@@ -12,7 +12,7 @@
  *  - Stale responses (e.g. after a scenario switch) are discarded instead of
  *    overwriting newer state.
  */
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Zap, AlertTriangle, Lock } from 'lucide-react';
 import { useApp, useAsyncOp } from '../store/appStore';
 import { Spinner } from './ui/Spinner';
@@ -22,10 +22,10 @@ import {
   findAlternativeDependencies,
   compareRecoveryOptions,
 } from '../api/mcpClient';
-import type { EventType, DisruptionSeverity, ScenarioId } from '../types';
+import type { EventType, DisruptionSeverity, Scenario } from '../types';
 import { clsx } from 'clsx';
 
-// ── Per-scenario disruption presets ──────────────────────────────────────────
+// ── Disruption presets (derived from the live plan) ──────────────────────────
 
 interface DisruptionPreset {
   id: string;
@@ -39,78 +39,33 @@ interface DisruptionPreset {
   defaultDelay?: number;
 }
 
-const PRESETS: Record<ScenarioId, DisruptionPreset[]> = {
-  'project-full': [
-    {
-      id: 'payment-outage',
-      label: 'Payment API outage',
-      entityId: 'payment-api',
-      eventType: 'service_outage',
-      severity: 'high',
-      defaultReason: 'Payment API service is unavailable',
-      description: 'Blocks backend integration and the entire downstream release chain.',
-      needsDelay: false,
-    },
-    {
-      id: 'resource-unavailable',
-      label: 'Teammate unavailable (Alice)',
-      entityId: 'backend-integration',
-      eventType: 'resource_unavailable',
-      severity: 'medium',
-      defaultReason: 'Alice is unavailable — backend integration stalled',
-      description: 'Simulates a key team member being out, blocking their assigned work.',
-      needsDelay: false,
-    },
-    {
-      id: 'vendor-delay',
-      label: 'Vendor delivery delay',
-      entityId: 'vendor-delivery',
-      eventType: 'delivery_delay',
-      severity: 'medium',
-      defaultReason: 'Vendor has delayed delivery by specified minutes',
-      description: 'External dependency arrives late. Downstream tasks may absorb the delay via slack.',
-      needsDelay: true,
-      defaultDelay: 120,
-    },
-  ],
-  'demo-release-plan': [
-    {
-      id: 'payment-outage',
-      label: 'Payment API outage',
-      entityId: 'payment-api',
-      eventType: 'service_outage',
-      severity: 'high',
-      defaultReason: 'Payment API service is unavailable',
-      description: 'Blocks the entire downstream release chain.',
-      needsDelay: false,
-    },
-  ],
-  'demo-release-plan-staffed': [
-    {
-      id: 'payment-outage',
-      label: 'Payment API outage',
-      entityId: 'payment-api',
-      eventType: 'service_outage',
-      severity: 'high',
-      defaultReason: 'Payment API service is unavailable',
-      description: 'Blocks integration chain. Alice is overloaded — workload rebalancing may be triggered.',
-      needsDelay: false,
-    },
-  ],
-  travel: [
-    {
-      id: 'train-delay',
-      label: 'Train leg 1 delayed',
-      entityId: 'leg-1',
-      eventType: 'transport_delay',
-      severity: 'medium',
-      defaultReason: 'Train leg 1 is delayed',
-      description: 'Delay propagates through connections. Downstream legs with slack may absorb it.',
-      needsDelay: true,
-      defaultDelay: 45,
-    },
-  ],
-};
+/**
+ * Build presets from the loaded plan so the simulator works for any scenario,
+ * including imported PM plans — never a hardcoded scenario→preset table.
+ * Every unfinished entity becomes a candidate; external entities are modelled
+ * as delivery delays (which can carry a delay parameter), everything else as
+ * a service outage.
+ */
+function buildPresets(plan: Scenario | null): DisruptionPreset[] {
+  if (!plan) return [];
+  return plan.entities
+    .filter((entity) => entity.status !== 'done')
+    .map((entity) => {
+      const external = Boolean(entity.metadata?.external);
+      const name = entity.name || entity.id;
+      return {
+        id: `entity:${entity.id}`,
+        label: name,
+        entityId: entity.id,
+        eventType: external ? 'delivery_delay' : 'service_outage',
+        severity: 'high' as DisruptionSeverity,
+        defaultReason: external ? `${name} delivery is delayed` : `${name} is unavailable`,
+        description: 'Simulate a disruption here and trace its blast radius through the plan.',
+        needsDelay: external,
+        defaultDelay: external ? 120 : undefined,
+      };
+    });
+}
 
 const SEVERITY_OPTS: { value: DisruptionSeverity; label: string }[] = [
   { value: 'low',      label: 'Low' },
@@ -123,14 +78,27 @@ const SEVERITY_OPTS: { value: DisruptionSeverity; label: string }[] = [
 
 export function DisruptionControls() {
   const [state, dispatch] = useApp();
-  const { activeScenarioId, disruption, mcpStatus } = state;
+  const { activeScenarioId, planData, disruption, mcpStatus } = state;
   const { loading, error, run } = useAsyncOp('disruption');
 
-  const presets = PRESETS[activeScenarioId] ?? [];
-  const [selectedPresetId, setSelectedPresetId] = useState(presets[0]?.id ?? '');
+  const presets = useMemo(() => buildPresets(planData), [planData]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
   const [severity, setSeverity] = useState<DisruptionSeverity>('high');
   const [delayMinutes, setDelayMinutes] = useState<number>(120);
   const [customReason, setCustomReason] = useState('');
+
+  // Keep the selection valid across scenario switches / plan (re)loads. Reset
+  // during render (React's recommended pattern) rather than in an effect.
+  const [prevPresets, setPrevPresets] = useState(presets);
+  if (prevPresets !== presets) {
+    setPrevPresets(presets);
+    const first = presets[0];
+    setSelectedPresetId(first?.id ?? '');
+    if (first) {
+      setSeverity(first.severity);
+      if (first.defaultDelay) setDelayMinutes(first.defaultDelay);
+    }
+  }
 
   const preset = presets.find((p) => p.id === selectedPresetId) ?? presets[0];
   const isActive = disruption.active;

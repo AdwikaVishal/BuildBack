@@ -1,0 +1,53 @@
+# RippleBack — two-process deployment (MCP server + API adapter/dashboard).
+#
+# Both processes share one SQLite database on the `data` volume. The adapter is
+# the only MCP client; the browser only ever talks to the adapter.
+#
+#   docker compose up --build
+#   # dashboard: http://localhost:8001   (built frontend + REST API)
+#   # MCP server: http://localhost:8000/mcp
+#
+# Writes are DISABLED by default here. To enable them, set on the adapter:
+#   RIPPLEBACK_WRITES_ENABLED: "true"
+#   RIPPLEBACK_API_KEY: "<a-long-random-secret>"
+# ...and have mutating clients send `Authorization: Bearer <secret>`. Note the
+# bundled dashboard does not send the key, so enabling the key locks the UI out
+# of writes; keep the key unset for a local demo, or front the adapter with an
+# authenticating proxy in production.
+#
+# To pull PM credentials in, export them in your shell or add an `env_file`
+# entry (e.g. a filled-in .env) to each service below.
+
+services:
+  mcp:
+    build: .
+    image: rippleback:local
+    command: ["rippleback-mcp"]
+    environment:
+      RIPPLEBACK_HOST: "0.0.0.0"
+      RIPPLEBACK_PORT: "8000"
+      RIPPLEBACK_DB_URL: "sqlite:////data/rippleback.db"
+    volumes:
+      - data:/data
+    ports:
+      - "8000:8000"
+
+  adapter:
+    build: .
+    image: rippleback:local
+    command: ["rippleback-adapter"]
+    environment:
+      RIPPLEBACK_ADAPTER_HOST: "0.0.0.0"
+      RIPPLEBACK_ADAPTER_PORT: "8001"
+      RIPPLEBACK_MCP_URL: "http://mcp:8000/mcp"
+      RIPPLEBACK_DB_URL: "sqlite:////data/rippleback.db"
+      RIPPLEBACK_WRITES_ENABLED: "false"
+    volumes:
+      - data:/data
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mcp
+
+volumes:
+  data:

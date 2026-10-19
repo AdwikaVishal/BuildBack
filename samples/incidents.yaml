@@ -1,0 +1,26 @@
+# Sample incident history for `rippleback seed-sample`.
+#
+# Feeds the risk metric (severity-weighted, recency-decayed) and the
+# disruption-count metric. `external_id` de-duplicates re-imports; `severity`
+# is one of low|medium|high|critical (unknown defaults to 1.0 weight).
+- scenario_id: sample-payments-release
+  entity_id: payment-gateway
+  severity: high
+  occurred_at: "2026-09-28T09:15:00+00:00"
+  source: sample
+  external_id: sample-inc-1001
+  summary: Gateway latency spike during peak checkout traffic
+- scenario_id: sample-payments-release
+  entity_id: checkout-ui
+  severity: medium
+  occurred_at: "2026-10-05T14:40:00+00:00"
+  source: sample
+  external_id: sample-inc-1002
+  summary: Checkout retries visible after a partial rollout
+- scenario_id: sample-payments-release
+  entity_id: fraud-review
+  severity: low
+  occurred_at: "2026-10-12T11:05:00+00:00"
+  source: sample
+  external_id: sample-inc-1003
+  summary: Sporadic false positives in the fraud queue
