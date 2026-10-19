@@ -12,9 +12,13 @@ dependencies = [
 dev = [
     "pytest>=8.0",
 ]
+bedrock = [
+    "boto3>=1.34",
+]
 
 [project.scripts]
 rippleback-mcp = "rippleback.server:main"
+rippleback-adapter = "rippleback.adapter:main"
 
 [build-system]
 requires = ["setuptools>=68"]

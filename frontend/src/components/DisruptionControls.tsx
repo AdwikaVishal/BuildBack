@@ -1,16 +1,19 @@
 /**
- * DisruptionControls — entity/type/parameter pickers + simulation trigger.
+ * DisruptionControls — scenario presets, parameters, and the simulation trigger.
  *
- * Supports:
- *   Project scenarios  → service_outage (payment-api), resource_unavailable (any assignee),
- *                        delivery_delay (vendor-delivery with delay_minutes)
- *   Travel scenario    → transport_delay (leg-1 with delay_minutes)
+ * Supports the per-scenario presets defined against the real backend event
+ * types (service_outage, resource_unavailable, delivery_delay,
+ * transport_delay) and submits them through the actual MCP tool schemas.
  *
- * Uses the actual analyze_blocked_tasks event_type + delay_minutes schema.
- * Never modifies the committed plan.
+ * Honesty rules:
+ *  - No mock fallbacks: a failed request surfaces as an error, never as
+ *    fabricated data.
+ *  - Simulation is read-only: the committed plan is never modified.
+ *  - Stale responses (e.g. after a scenario switch) are discarded instead of
+ *    overwriting newer state.
  */
-import { useState } from 'react';
-import { Zap, AlertTriangle, ChevronDown } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Zap, AlertTriangle, Lock } from 'lucide-react';
 import { useApp, useAsyncOp } from '../store/appStore';
 import { Spinner } from './ui/Spinner';
 import {
@@ -19,12 +22,6 @@ import {
   findAlternativeDependencies,
   compareRecoveryOptions,
 } from '../api/mcpClient';
-import {
-  MOCK_IMPACT_RESULT,
-  MOCK_TRIAGE_RESULT,
-  MOCK_RECOVERY_RESULT,
-  MOCK_COMPARISON_RESULT,
-} from '../data/mockScenario';
 import type { EventType, DisruptionSeverity, ScenarioId } from '../types';
 import { clsx } from 'clsx';
 
@@ -139,7 +136,10 @@ export function DisruptionControls() {
   const isActive = disruption.active;
   const isOffline = !mcpStatus.connected;
 
-  // Sync delay default when preset changes
+  // Monotonic token: responses belonging to an outdated request (e.g. the
+  // user switched scenario mid-flight) are discarded instead of dispatched.
+  const requestSeq = useRef(0);
+
   function handlePresetChange(id: string) {
     setSelectedPresetId(id);
     const p = presets.find((pr) => pr.id === id);
@@ -150,8 +150,10 @@ export function DisruptionControls() {
 
   async function handleSimulate() {
     if (!preset) return;
+    const token = ++requestSeq.current;
+    const isCurrent = () => token === requestSeq.current;
     const reason = customReason.trim() || preset.defaultReason;
-    const params = preset.needsDelay ? { delay_minutes: delayMinutes } : undefined;
+    const delay = preset.needsDelay ? delayMinutes : undefined;
 
     dispatch({
       type: 'TRIGGER_DISRUPTION',
@@ -159,136 +161,145 @@ export function DisruptionControls() {
       reason,
       severity,
       eventType: preset.eventType,
-      ...(preset.needsDelay ? { delayMinutes } : {}),
+      ...(delay != null ? { delayMinutes: delay } : {}),
     });
 
     dispatch({ type: 'LOG_ACTIVITY', stage: 'disruption_detected', label: 'Disruption detected', status: 'done', detail: preset.label });
     dispatch({ type: 'LOG_ACTIVITY', stage: 'simulation_completed', label: 'Simulation completed', status: 'running' });
 
     await run(async () => {
-      let impactResult    = MOCK_IMPACT_RESULT;
-      let triageResult    = MOCK_TRIAGE_RESULT;
-      let recoveryResult  = MOCK_RECOVERY_RESULT;
-      let comparisonResult = MOCK_COMPARISON_RESULT;
-
-      if (!isOffline) {
+      try {
+        // Real backend calls only — every failure surfaces as an error below.
         const [impact, triage] = await Promise.all([
-          simulateDisruption(activeScenarioId, preset.entityId, reason, severity)
-            .catch(() => MOCK_IMPACT_RESULT),
-          analyzeBlockedTasks(activeScenarioId, preset.entityId, preset.eventType, reason, params?.delay_minutes)
-            .catch(() => MOCK_TRIAGE_RESULT),
+          simulateDisruption(activeScenarioId, preset.entityId, reason, severity),
+          analyzeBlockedTasks(activeScenarioId, preset.entityId, preset.eventType, reason, delay),
         ]);
-        impactResult  = impact;
-        triageResult  = triage;
+        if (!isCurrent()) return null;
 
-        const recovery = await findAlternativeDependencies(activeScenarioId, preset.entityId)
-          .catch(() => MOCK_RECOVERY_RESULT);
-        recoveryResult = recovery;
+        dispatch({ type: 'SET_IMPACT', result: impact });
+        dispatch({ type: 'SET_TRIAGE', result: triage });
+        dispatch({ type: 'LOG_ACTIVITY', stage: 'simulation_completed', label: 'Simulation completed', status: 'done' });
+        dispatch({
+          type: 'LOG_ACTIVITY', stage: 'impact_analyzed', label: 'Impact analyzed', status: 'done',
+          detail: `${triage.summary.blocked} blocked, ${triage.summary.at_risk} at-risk`,
+        });
+
+        const recovery = await findAlternativeDependencies(activeScenarioId, preset.entityId);
+        if (!isCurrent()) return null;
+        dispatch({ type: 'SET_RECOVERY', result: recovery });
 
         if (recovery.options.length > 0) {
           const comparison = await compareRecoveryOptions(
             activeScenarioId,
             recovery.options.map((o) => ({ option_id: o.option_id })),
-          ).catch(() => MOCK_COMPARISON_RESULT);
-          comparisonResult = comparison;
+          );
+          if (!isCurrent()) return null;
+          dispatch({ type: 'SET_COMPARISON', result: comparison });
+          dispatch({
+            type: 'LOG_ACTIVITY', stage: 'recovery_generated', label: 'Recovery options generated', status: 'done',
+            detail: `${comparison.feasible_count} feasible options`,
+          });
+        } else {
+          dispatch({
+            type: 'LOG_ACTIVITY', stage: 'recovery_generated', label: 'Recovery options generated', status: 'done',
+            detail: 'no alternatives found for this disruption',
+          });
         }
+
+        dispatch({ type: 'SET_VIEW', view: 'impact' });
+        return null;
+      } catch (err) {
+        if (isCurrent()) {
+          dispatch({
+            type: 'LOG_ACTIVITY', stage: 'simulation_completed', label: 'Simulation completed', status: 'failed',
+            detail: err instanceof Error ? err.message : String(err),
+          });
+        }
+        throw err;
       }
-
-      dispatch({ type: 'SET_IMPACT',     result: impactResult });
-      dispatch({ type: 'SET_TRIAGE',     result: triageResult });
-      dispatch({ type: 'SET_RECOVERY',   result: recoveryResult });
-      dispatch({ type: 'SET_COMPARISON', result: comparisonResult });
-
-      dispatch({ type: 'LOG_ACTIVITY', stage: 'simulation_completed', label: 'Simulation completed', status: 'done' });
-      dispatch({ type: 'LOG_ACTIVITY', stage: 'impact_analyzed',      label: 'Impact analyzed',      status: 'done',
-        detail: `${triageResult.summary.blocked} blocked, ${triageResult.summary.at_risk} at-risk` });
-      dispatch({ type: 'LOG_ACTIVITY', stage: 'recovery_generated',   label: 'Recovery options generated', status: 'done',
-        detail: `${comparisonResult.feasible_count} feasible options` });
-      dispatch({ type: 'LOG_ACTIVITY', stage: 'option_selected',      label: 'Option selected for review', status: 'awaiting' });
-
-      dispatch({ type: 'SET_VIEW', view: 'impact' });
     });
   }
 
   if (presets.length === 0) return null;
 
   return (
-    <div className="card space-y-0 overflow-hidden">
+    <div className="card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-600">
-        <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-gray-200">Disruption Controls</span>
-        {isOffline && (
-          <span className="ml-auto tag-at_risk text-[10px]">MOCK</span>
-        )}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-700">
+        <Zap className="w-4 h-4 text-acid flex-shrink-0" />
+        <span className="text-sm font-semibold text-ink font-display">Simulate Disruption</span>
+        <span className="ml-auto badge bg-surface-800 text-ink-muted border border-surface-700 text-[11px]">
+          <Lock className="w-2.5 h-2.5" /> READ-ONLY
+        </span>
       </div>
 
       <div className="p-4 space-y-4">
         {/* Preset picker */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] uppercase tracking-wider text-gray-600">Disruption type</label>
+        <fieldset className="space-y-1.5" disabled={isActive || loading}>
+          <legend className="label-tech mb-1.5">Disruption scenario</legend>
           <div className="space-y-1.5">
             {presets.map((p) => (
               <button
                 key={p.id}
-                disabled={isActive || loading}
+                type="button"
                 onClick={() => handlePresetChange(p.id)}
+                aria-pressed={selectedPresetId === p.id}
                 className={clsx(
                   'w-full text-left px-3 py-2.5 rounded-lg border text-xs transition-colors',
                   selectedPresetId === p.id
-                    ? 'border-blue-600 bg-blue-950/40 text-blue-200'
-                    : 'border-surface-500 bg-surface-700/50 text-gray-400 hover:border-surface-400 hover:text-gray-300',
+                    ? 'border-acid/60 bg-acid/5 text-ink'
+                    : 'border-surface-700 bg-surface-900/40 text-ink-secondary hover:border-surface-600 hover:text-ink',
                   (isActive || loading) && 'opacity-50 cursor-not-allowed',
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{p.label}</span>
+                  <span className="font-semibold">{p.label}</span>
                   <EventTypeBadge type={p.eventType} />
                 </div>
-                <p className="text-[10px] mt-0.5 opacity-70 leading-relaxed">{p.description}</p>
+                <p className="text-[11px] mt-0.5 opacity-70 leading-relaxed">{p.description}</p>
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         {/* Delay input (when needed) */}
         {preset?.needsDelay && (
           <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-wider text-gray-600">
-              Delay (minutes)
-            </label>
+            <label htmlFor="rb-delay" className="label-tech">Delay (minutes)</label>
             <div className="flex items-center gap-2">
               <input
+                id="rb-delay"
                 type="number"
                 min={1}
                 max={480}
                 value={delayMinutes}
                 onChange={(e) => setDelayMinutes(Math.max(1, Number(e.target.value)))}
                 disabled={isActive || loading}
-                className="w-24 bg-surface-700 border border-surface-500 rounded px-2.5 py-1.5 text-sm text-gray-200 font-mono focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                className="w-24 bg-surface-900 border border-surface-700 rounded-lg px-2.5 py-1.5 text-sm text-ink font-mono focus:outline-none focus:border-acid disabled:opacity-50"
               />
-              <span className="text-xs text-gray-600">minutes</span>
+              <span className="text-xs text-ink-muted">minutes</span>
             </div>
-            <p className="text-[10px] text-gray-600">
+            <p className="text-[11px] text-ink-muted">
               Downstream tasks with sufficient slack will absorb this delay.
             </p>
           </div>
         )}
 
         {/* Severity row */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] uppercase tracking-wider text-gray-600">Severity</label>
+        <fieldset className="space-y-1.5" disabled={isActive || loading}>
+          <legend className="label-tech mb-1.5">Severity</legend>
           <div className="flex gap-1.5 flex-wrap">
             {SEVERITY_OPTS.map((opt) => (
               <button
                 key={opt.value}
-                disabled={isActive || loading}
+                type="button"
                 onClick={() => setSeverity(opt.value)}
+                aria-pressed={severity === opt.value}
                 className={clsx(
-                  'px-2.5 py-1 rounded text-[10px] font-medium border transition-colors',
+                  'px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors',
                   severity === opt.value
                     ? severityActive(opt.value)
-                    : 'border-surface-500 text-gray-500 hover:text-gray-300',
+                    : 'border-surface-700 text-ink-muted hover:text-ink-secondary',
                   (isActive || loading) && 'opacity-50 cursor-not-allowed',
                 )}
               >
@@ -296,27 +307,28 @@ export function DisruptionControls() {
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         {/* Custom reason */}
         <div className="space-y-1.5">
-          <label className="text-[10px] uppercase tracking-wider text-gray-600">
-            Reason <span className="normal-case text-gray-700">(optional)</span>
+          <label htmlFor="rb-reason" className="label-tech">
+            Reason <span className="normal-case text-ink-muted/70">(optional)</span>
           </label>
           <input
+            id="rb-reason"
             type="text"
             placeholder={preset?.defaultReason ?? 'Describe the disruption…'}
             value={customReason}
             onChange={(e) => setCustomReason(e.target.value)}
             disabled={isActive || loading}
-            className="w-full bg-surface-700 border border-surface-500 rounded px-2.5 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            className="w-full bg-surface-900 border border-surface-700 rounded-lg px-2.5 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-acid disabled:opacity-50"
           />
         </div>
 
         {/* Description preview */}
         {preset && (
-          <div className="text-[10px] text-gray-600 bg-surface-700/50 rounded px-3 py-2 leading-relaxed">
-            <span className="text-gray-500 font-medium">Will simulate: </span>
+          <div className="text-[11px] text-ink-muted bg-surface-900/60 border border-surface-700 rounded-lg px-3 py-2 leading-relaxed">
+            <span className="text-ink-secondary font-semibold">Will simulate: </span>
             {preset.description}
           </div>
         )}
@@ -324,8 +336,8 @@ export function DisruptionControls() {
         {/* Primary action */}
         <button
           className={clsx(
-            'w-full btn text-sm font-semibold py-2.5 justify-center',
-            isActive ? 'btn-ghost opacity-50' : 'btn-danger',
+            'w-full btn text-sm py-2.5',
+            isActive ? 'btn-ghost opacity-60' : 'btn-primary',
           )}
           onClick={handleSimulate}
           disabled={loading || isActive || !preset}
@@ -333,26 +345,31 @@ export function DisruptionControls() {
           {loading ? (
             <><Spinner className="w-4 h-4" /> Simulating…</>
           ) : isActive ? (
-            <><AlertTriangle className="w-4 h-4" /> Disruption active — reset first</>
+            <><AlertTriangle className="w-4 h-4" /> Disruption active — reset to run another</>
           ) : (
             <><Zap className="w-4 h-4" /> Simulate Disruption</>
           )}
         </button>
 
-        {/* Errors */}
+        {/* Errors — surfaced honestly, never masked with sample data */}
         {error && (
-          <div className="text-xs text-red-400 bg-red-900/20 border border-red-900 rounded px-3 py-2 space-y-1">
-            <p>{error}</p>
-            {isOffline && <p className="text-amber-400">Using mock data (backend offline).</p>}
+          <div role="alert" className="text-xs text-fail bg-fail/5 border border-fail/40 rounded-lg px-3 py-2 space-y-1">
+            <p className="font-semibold">Simulation failed</p>
+            <p className="font-mono break-words">{error}</p>
+            {isOffline && (
+              <p className="text-ink-muted">
+                The MCP backend is unreachable. Start the server and adapter (see README) — no mock data is shown.
+              </p>
+            )}
           </div>
         )}
 
         {/* Active notice */}
         {isActive && !loading && (
-          <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-900/15 border border-amber-900/50 rounded px-3 py-2">
+          <div className="flex items-start gap-2 text-xs text-warn bg-warn/5 border border-warn/40 rounded-lg px-3 py-2">
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>
-              Simulation only — the committed plan is <strong>not modified</strong>.
+              Hypothetical simulation only — the committed plan is <strong>not modified</strong>.
             </span>
           </div>
         )}
@@ -365,26 +382,21 @@ export function DisruptionControls() {
 
 function EventTypeBadge({ type }: { type: EventType }) {
   const map: Record<EventType, { label: string; cls: string }> = {
-    service_outage:       { label: 'outage',   cls: 'text-red-400 bg-red-900/30 border-red-800' },
-    resource_unavailable: { label: 'resource', cls: 'text-orange-400 bg-orange-900/30 border-orange-800' },
-    delivery_delay:       { label: 'delay',    cls: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
-    transport_delay:      { label: 'transport',cls: 'text-blue-400 bg-blue-900/30 border-blue-800' },
+    service_outage:       { label: 'outage',    cls: 'text-fail bg-fail/10 border-fail/40' },
+    resource_unavailable: { label: 'resource',  cls: 'text-warn bg-warn/10 border-warn/40' },
+    delivery_delay:       { label: 'delay',     cls: 'text-warn bg-warn/10 border-warn/40' },
+    transport_delay:      { label: 'transport', cls: 'text-info bg-info/10 border-info/40' },
   };
-  const { label, cls } = map[type] ?? { label: type, cls: 'text-gray-400 bg-surface-600 border-surface-500' };
-  return (
-    <span className={clsx('badge text-[9px] border', cls)}>
-      <ChevronDown className="hidden" />{/* satisfy lint — no unused import */}
-      {label}
-    </span>
-  );
+  const { label, cls } = map[type] ?? { label: type, cls: 'text-ink-secondary bg-surface-800 border-surface-700' };
+  return <span className={clsx('badge border', cls)}>{label}</span>;
 }
 
 function severityActive(s: DisruptionSeverity): string {
   const m: Record<DisruptionSeverity, string> = {
-    low:      'border-emerald-600 bg-emerald-900/30 text-emerald-300',
-    medium:   'border-yellow-600 bg-yellow-900/30 text-yellow-300',
-    high:     'border-orange-600 bg-orange-900/30 text-orange-300',
-    critical: 'border-red-600 bg-red-900/30 text-red-300',
+    low:      'border-ok/60 bg-ok/10 text-ok',
+    medium:   'border-warn/60 bg-warn/10 text-warn',
+    high:     'border-fail/60 bg-fail/10 text-fail',
+    critical: 'border-fail bg-fail/25 text-fail',
   };
   return m[s];
 }

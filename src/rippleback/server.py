@@ -1,6 +1,6 @@
 """RippleBack MCP server.
 
-Exposes ten read-only tools over the Streamable HTTP transport:
+Exposes eleven read-only tools over the Streamable HTTP transport:
 
 * ``get_plan_state`` — committed plan state.
 * ``simulate_disruption`` — hypothetical dependency-impact analysis.
@@ -17,6 +17,11 @@ Exposes ten read-only tools over the Streamable HTTP transport:
   per-option forecasts for recovery options.
 * ``find_substitute_options`` — explicit substitute candidates declared via
   ``metadata.substitutes`` (no shipped fixture declares any).
+* ``generate_recovery_schedule`` — relative-duration recovery schedule:
+  readiness groups, parallel layers, execution order, and (when every task
+  declares a duration) earliest start/finish times and a completion duration,
+  plus a baseline-vs-recovery comparison. Relative time only — never calendar
+  dates.
 
 No writes yet.
 """
@@ -49,6 +54,10 @@ from rippleback.recovery import (
     find_alternative_dependencies as _find_alternatives,
     find_substitute_options as _find_substitutes,
 )
+from rippleback.scheduler import (
+    SchedulerError,
+    generate_recovery_schedule as _schedule,
+)
 from rippleback.scenarios import ScenarioError, get_scenario
 from rippleback.scoring import ScoringError
 from rippleback.triage import TriageError
@@ -78,8 +87,11 @@ mcp = MCPServer(
         "critical-path delivery forecasts for a proposed change set, "
         "hard-constraint and graph validation of a proposed change set, "
         "comparison and ranking of recovery options with per-option "
-        "forecasts, and explicit substitute-candidate discovery (declared "
-        "via entity metadata only). All tools are read-only and "
+        "forecasts, explicit substitute-candidate discovery (declared "
+        "via entity metadata only), and relative-duration recovery "
+        "scheduling (readiness groups, parallel layers, execution order, "
+        "start/finish offsets in relative units — never calendar dates). "
+        "All tools are read-only and "
         "hypothetical; nothing is committed."
     ),
 )
@@ -456,6 +468,71 @@ def find_substitute_options(
         scenario = get_scenario(scenario_id)
         return _find_substitutes(scenario, entity_id=entity_id)
     except (ScenarioError, RecoveryError, ConstraintError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    name="generate_recovery_schedule",
+    description=(
+        "Generate a hypothetical, read-only schedule for a scenario, optionally "
+        "after a proposed recovery change set (the apply_changes shape) or a "
+        "legacy drop-dependency option id, and optionally with a disrupted "
+        "entity whose readiness is recomputed with blocker triage against the "
+        "modified graph. Reports per-task readiness groups (completed, "
+        "ready_now, waiting, blocked), parallel execution layers, a "
+        "deterministic execution order, hard/soft prerequisites, critical-path "
+        "membership, and — only when every task declares a duration — earliest "
+        "start/finish times, waiting vs execution time, and a projected "
+        "completion duration in relative units. Missing durations are never "
+        "invented: the report comes back as outcome insufficient_duration_data "
+        "with ordering only and missing_data explaining what is absent. With a "
+        "change set, the report also includes the committed plan's baseline "
+        "schedule and a baseline-vs-recovery comparison (execution orders, "
+        "critical paths, completion delta only when comparable, per-task "
+        "offset changes, newly blocked/unblocked tasks, parallelism changes). "
+        "Proposals that create a cycle, a dangling reference, or a hard-"
+        "constraint violation are reported in-band as outcome infeasible with "
+        "stable violation codes and no schedule — an infeasible proposal is "
+        "never ordered or recommended. scheduling_config may declare "
+        "duration_unit (a label; 'minutes' additionally honors "
+        "required_buffer_minutes arrival buffers) and durations (explicit "
+        "caller-supplied per-entity durations). Relative time only: no "
+        "calendar, start date, or working hours are modeled, and no resource "
+        "constraints are applied. Unknown scenario/entity ids and malformed "
+        "inputs return a structured error. Read-only: the committed plan is "
+        "never modified."
+    ),
+)
+def generate_recovery_schedule(
+    scenario_id: str,
+    changes: list[dict[str, Any]] | None = None,
+    option_id: str | None = None,
+    disrupted_entity_id: str | None = None,
+    scheduling_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return a hypothetical, read-only relative-duration schedule report.
+
+    Read-only. Raises ``ToolError`` for unknown scenarios/entities, malformed
+    change sets or option ids, conflicting inputs, substitute-format option
+    ids (which must be passed as explicit ``changes``), and invalid
+    scheduling configs. Invalid graphs and constraint violations come back
+    in-band with ``feasible: False`` and ``outcome: "infeasible"``.
+    """
+    try:
+        scenario = get_scenario(scenario_id)
+        if (
+            isinstance(option_id, str)
+            and option_id.startswith(_SUBSTITUTE_ID_PREFIX)
+        ):
+            raise ToolError(f"option_id {option_id!r} {_SUBSTITUTE_ID_HINT}")
+        return _schedule(
+            scenario,
+            changes=changes,
+            option_id=option_id,
+            disrupted_entity_id=disrupted_entity_id,
+            scheduling_config=scheduling_config,
+        )
+    except (ScenarioError, SchedulerError, ConstraintError, GraphError) as exc:
         raise ToolError(str(exc)) from exc
 
 

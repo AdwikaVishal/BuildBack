@@ -22,8 +22,10 @@ import type {
   ConstraintValidationResult,
   ComparisonResult,
   SubstituteResult,
+  ScheduleResult,
   MCPToolCall,
   MCPConnectionStatus,
+  MCPToolInfo,
   DisruptionSeverity,
   EventType,
   ChangeItem,
@@ -34,11 +36,13 @@ import type {
 // Re-export MCPToolCall so MCPInspector can import it from this module.
 export type { MCPToolCall };
 
+import { MOCK_MODE, mockToolResult, mockConnectionStatus, mockCallLogEntries, mockToolList } from '../data/mock';
+
 // ── Global call log (observable via subscribe) ────────────────────────────────
 
 type CallListener = (call: MCPToolCall) => void;
 const _listeners = new Set<CallListener>();
-export const callLog: MCPToolCall[] = [];
+export const callLog: MCPToolCall[] = MOCK_MODE ? mockCallLogEntries() : [];
 
 export function subscribeCalls(fn: CallListener): () => void {
   _listeners.add(fn);
@@ -53,10 +57,9 @@ function _emit(call: MCPToolCall) {
 
 // ── Connection status store ───────────────────────────────────────────────────
 
-let _connectionStatus: MCPConnectionStatus = {
-  connected: false,
-  serverUrl: '/api/mcp',
-};
+let _connectionStatus: MCPConnectionStatus = MOCK_MODE
+  ? mockConnectionStatus()
+  : { connected: false, serverUrl: '/api/mcp' };
 type StatusListener = (status: MCPConnectionStatus) => void;
 const _statusListeners = new Set<StatusListener>();
 
@@ -92,6 +95,20 @@ async function callTool<T>(tool: string, args: Record<string, unknown>): Promise
   const pending: MCPToolCall = { id, tool, args, startedAt, isError: false };
   _emit(pending);
 
+  // Mock mode: serve the captured fixture instead of reaching the backend.
+  if (MOCK_MODE) {
+    const fixture = mockToolResult(tool);
+    const completedAt = Date.now();
+    if (fixture === null) {
+      const error = `No mock fixture captured for tool "${tool}"`;
+      _emit({ ...pending, completedAt, durationMs: completedAt - startedAt, error, isError: true });
+      throw new MCPToolError(tool, error);
+    }
+    _emit({ ...pending, completedAt, durationMs: completedAt - startedAt, result: fixture, isError: false });
+    _setStatus({ connected: true, lastCheckedAt: completedAt });
+    return fixture as T;
+  }
+
   let response: Response;
   try {
     response = await fetch('/api/mcp/tool', {
@@ -123,7 +140,12 @@ async function callTool<T>(tool: string, args: Record<string, unknown>): Promise
   if (!response.ok || body.isError || body.error) {
     const error = body.error ?? `HTTP ${response.status}`;
     _emit({ ...pending, completedAt, durationMs, result: body, error, isError: true });
-    _setStatus({ connected: true, lastCheckedAt: completedAt });
+    // 503 from the adapter means the MCP server behind it is unreachable.
+    if (response.status === 503) {
+      _setStatus({ connected: false, error, lastCheckedAt: completedAt });
+    } else {
+      _setStatus({ connected: true, lastCheckedAt: completedAt });
+    }
     throw new MCPToolError(tool, error);
   }
 
@@ -144,10 +166,31 @@ export class MCPToolError extends Error {
 // ── Health check ──────────────────────────────────────────────────────────────
 
 export async function checkConnection(): Promise<MCPConnectionStatus> {
+  if (MOCK_MODE) {
+    const status = mockConnectionStatus();
+    _setStatus(status);
+    return status;
+  }
   try {
-    const resp = await fetch('/api/mcp/health', { signal: AbortSignal.timeout(5_000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const body = await resp.json() as { name?: string; version?: string; tools?: string[] };
+    const resp = await fetch('/api/health', { signal: AbortSignal.timeout(5_000) });
+    const body = await resp.json() as {
+      name?: string; version?: string; tools?: string[]; error?: string;
+      mcp?: { connected?: boolean; error?: string };
+      assistant?: { provider?: string };
+    };
+    const assistantProvider = body.assistant?.provider;
+    if (!resp.ok || body.error || body.mcp?.connected === false) {
+      // The adapter is up but the MCP server behind it is not.
+      const status: MCPConnectionStatus = {
+        connected: false,
+        serverUrl: '/api/mcp',
+        error: body.error ?? body.mcp?.error ?? `HTTP ${resp.status}`,
+        lastCheckedAt: Date.now(),
+        assistantProvider,
+      };
+      _setStatus(status);
+      return status;
+    }
     const status: MCPConnectionStatus = {
       connected: true,
       serverUrl: '/api/mcp',
@@ -155,6 +198,7 @@ export async function checkConnection(): Promise<MCPConnectionStatus> {
       serverVersion: body.version,
       tools: body.tools,
       lastCheckedAt: Date.now(),
+      assistantProvider,
     };
     _setStatus(status);
     return status;
@@ -169,6 +213,27 @@ export async function checkConnection(): Promise<MCPConnectionStatus> {
     _setStatus(status);
     return status;
   }
+}
+
+// ── Tool discovery (live from the MCP server via the adapter) ────────────────
+
+/**
+ * Fetch the live-discovered tool list, including descriptions and JSON input
+ * schemas. The list comes from the MCP server's own tools/list — nothing is
+ * hardcoded, so newly registered tools (e.g. a scheduling tool) appear here
+ * without any frontend change.
+ */
+export async function listTools(refresh = false): Promise<MCPToolInfo[]> {
+  if (MOCK_MODE) {
+    return mockToolList();
+  }
+  const url = refresh ? '/api/mcp/tools?refresh=1' : '/api/mcp/tools';
+  const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const body = await resp.json() as { tools?: MCPToolInfo[]; error?: string };
+  if (!resp.ok || body.error) {
+    throw new Error(body.error ?? `HTTP ${resp.status}`);
+  }
+  return body.tools ?? [];
 }
 
 // ── Tool wrappers ─────────────────────────────────────────────────────────────
@@ -282,5 +347,24 @@ export async function findSubstituteOptions(
   return callTool<SubstituteResult>('find_substitute_options', {
     scenario_id: scenarioId,
     entity_id: entityId,
+  });
+}
+
+/**
+ * generate_recovery_schedule — relative-duration recovery scheduling.
+ * Optional change set (the apply_changes shape) and/or a legacy
+ * drop-dependency option id, plus an optional disrupted entity whose
+ * readiness is recomputed with blocker triage. Never produces calendar
+ * dates: the report is in relative units.
+ */
+export async function generateRecoverySchedule(
+  scenarioId: ScenarioId,
+  options: { changes?: ChangeItem[]; optionId?: string; disruptedEntityId?: string } = {},
+): Promise<ScheduleResult> {
+  return callTool<ScheduleResult>('generate_recovery_schedule', {
+    scenario_id: scenarioId,
+    ...(options.changes    ? { changes: options.changes }              : {}),
+    ...(options.optionId   ? { option_id: options.optionId }           : {}),
+    ...(options.disruptedEntityId ? { disrupted_entity_id: options.disruptedEntityId } : {}),
   });
 }

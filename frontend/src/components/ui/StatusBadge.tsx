@@ -26,14 +26,14 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 const DOT_COLORS: Record<string, string> = {
-  blocked:     'bg-red-400',
-  external:    'bg-orange-400',
-  at_risk:     'bg-yellow-400',
-  healthy:     'bg-emerald-400',
-  done:        'bg-gray-500',
-  pending:     'bg-purple-400',
-  in_progress: 'bg-blue-400',
-  simulated:   'bg-amber-400',
+  blocked:     'bg-fail',
+  external:    'bg-info',
+  at_risk:     'bg-warn',
+  healthy:     'bg-ok',
+  done:        'bg-ink-muted',
+  pending:     'bg-ink-secondary',
+  in_progress: 'bg-info',
+  simulated:   'bg-warn',
 };
 
 interface Props {
@@ -43,9 +43,9 @@ interface Props {
 }
 
 export function StatusBadge({ status, showDot = true, className }: Props) {
-  const cls = CLASS_MAP[status] ?? 'badge bg-surface-600 text-gray-400 border border-surface-500';
+  const cls = CLASS_MAP[status] ?? 'badge bg-surface-800 text-ink-secondary border border-surface-700';
   const label = LABEL_MAP[status] ?? status.toUpperCase().replace('_', ' ');
-  const dotCls = DOT_COLORS[status] ?? 'bg-gray-400';
+  const dotCls = DOT_COLORS[status] ?? 'bg-ink-muted';
 
   return (
     <span className={clsx(cls, className)}>

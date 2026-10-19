@@ -1,4 +1,4 @@
-# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation, workload rebalancing, blocker triage
+# RippleBack — MCP server, impact engine, recovery alternatives, proposal evaluation, workload rebalancing, blocker triage, MCP client + conversational assistant
 
 ## 1. Purpose and scope
 
@@ -43,9 +43,22 @@ Implemented so far:
   scenario **explicitly declares** via `metadata.substitutes`. No shipped
   fixture declares any, so fixtures honestly return
   `no_substitute_candidates`.
+- Read-only tool `generate_recovery_schedule` — **relative-duration recovery
+  scheduling**: per-task readiness groups (`completed`, `ready_now`,
+  `waiting`, `blocked`), parallel execution layers, a deterministic execution
+  order, and — only when every task declares a duration — earliest
+  start/finish times, waiting vs. execution time, and a projected completion
+  duration in relative units (never calendar dates). Missing durations are
+  never invented: the report is ordering-only with `missing_data` explaining
+  what is absent. With a change set it also reports the committed plan's
+  baseline schedule and a baseline-vs-recovery comparison (completion delta
+  only when comparable); infeasible proposals (cycle, dangling reference,
+  constraint violation) come back `feasible: false` with violations and **no
+  schedule**.
 - Recovery engines (`rippleback.forecast`, `rippleback.constraints`,
   `rippleback.scoring`, `rippleback.comparison`) powering those tools, plus the
-  substitute-candidate engine in `rippleback.recovery`.
+  substitute-candidate engine in `rippleback.recovery` and the
+  relative-duration scheduler in `rippleback.scheduler`.
 - A typed dependency graph builder (`rippleback.graph`) with explicit edge types
   (`requires_completion`, `requires_arrival_by`, `benefits_from`), invalid-
   reference detection, and **cycle detection**.
@@ -117,6 +130,26 @@ python -m rippleback.server
 rippleback-mcp
 ```
 
+### Starting everything (MCP server + assistant adapter + dashboard)
+
+The conversational dashboard (Person 4) runs three processes:
+
+```bash
+# terminal 1 — the MCP server (business logic, 10+ read-only tools)
+python -m rippleback.server                # http://127.0.0.1:8000/mcp
+
+# terminal 2 — the local API adapter (the genuine MCP client + assistant)
+pip install -e .
+rippleback-adapter                         # http://127.0.0.1:8001
+# equivalently: python -m rippleback.adapter
+
+# terminal 3 — the React dashboard (proxies /api/* to the adapter)
+cd frontend && npm install && npm run dev  # http://127.0.0.1:5173
+```
+
+The dashboard works without the adapter/MCP server too: it falls back to
+labelled mock data and reports the MCP connection as offline.
+
 ## 6. Endpoint and transport
 
 | Setting | Value |
@@ -160,6 +193,26 @@ pipeline on real fixtures.
 The integration test (`tests/integration/test_mcp_server.py`) is a **real,
 non-mocked** end-to-end test: it spawns a live server subprocess and talks to
 it with the official MCP client SDK.
+
+Person 4 (MCP client + assistant) tests:
+
+- `tests/test_client.py` — genuine MCP client against a live server
+  subprocess: connection lifecycle, live tool discovery (dynamic; no
+  hardcoded tool list), `get_plan_state` / `analyze_blocked_tasks` /
+  recovery-tool invocation, invalid tool names and arguments, MCP tool-error
+  propagation, server-unavailable handling, transport-failure recovery,
+  session cleanup, and sequential/concurrent requests.
+- `tests/test_assistant.py` — intent mapping, clarification questions,
+  live-data entity resolution, multi-tool workflows built from actual
+  intermediate results, failed-step handling, the per-turn tool-call budget,
+  scheduling-tool honesty (no fabricated schedules), structural-vs-business
+  honesty, the deterministic/Bedrock provider fallback, and one genuine
+  end-to-end workflow against a live MCP server that asserts the committed
+  plan is never mutated.
+- `tests/test_adapter.py` — the local API adapter over real HTTP against a
+  live MCP server: health, tool discovery with schemas, tool invocation,
+  assistant chat, malformed-input rejection, MCP-offline behaviour (503 +
+  honest assistant reply), and the read-only guarantee.
 
 **Two-terminal workflow** (test against a server you started yourself):
 
@@ -806,8 +859,12 @@ the SDK's `ToolError` so the message reaches the model/client.
 - **No writes**: no committing a reassignment, release-date optimization, or
   committing a recovery/evaluation/rebalance/forecast back to the plan.
 - **No AI**: no LLM, no Amazon Bedrock, no inference of any kind.
-- **No scheduling**: the critical path is a dependency-chain ranking, not a
-  timeline; no calendars, working hours, or dates.
+- **No calendar scheduling**: `generate_recovery_schedule` produces a
+  *relative-duration* schedule (readiness groups, parallel layers, execution
+  order, start/finish offsets from the moment of analysis) — but no calendars,
+  working hours, timezones, or dates exist in the repository, so no
+  wall-clock scheduling, deadline optimization, or resource leveling is
+  possible or claimed.
 - **No frontend** and no persistence (fixtures are in-process Python dicts).
 - **No auth**: server binds to localhost with no authentication — never expose
   it publicly.
@@ -883,6 +940,279 @@ Outcomes: `substitutes_proposed`, `no_feasible_substitute`, or
 return `no_substitute_candidates`; no service, availability, compatibility,
 cost, or risk is ever invented. Options carry explicit `changes`, so they flow
 into `compare_recovery_options` and `recalculate_delivery_forecast` unchanged.
+
+## 18. Recovery scheduling tool (Milestone 7)
+
+### `generate_recovery_schedule(scenario_id, changes=None, option_id=None, disrupted_entity_id=None, scheduling_config=None)`
+
+A **relative-duration** scheduling engine (`rippleback.scheduler`) reusing the
+graph, triage, constraints, and critical-path engines — no second graph or
+constraint engine is introduced. With no `changes`/`option_id` it describes
+the committed plan's schedule; with a change set (or a legacy
+`drop-dependency:` id) it also reports the committed plan's `baseline`
+schedule and a `comparison`. When `disrupted_entity_id` is given, readiness
+comes from blocker triage (default `service_outage` event) recomputed against
+the **modified** graph, so a recovery that removes the cause of a blockage
+shows as hypothetical unblocked work, clearly distinct from the committed
+state.
+
+Rules the engine enforces:
+
+- **Relative time only** — `t = 0` is the moment of analysis; the repository
+  models no calendar, start date, or working hours, so every time is a
+  relative offset in the report's unit (`duration_units` by default).
+- **Durations are never invented** — when any entity lacks a `duration`, the
+  report is ordering-only: `outcome: "insufficient_duration_data"`,
+  `null` start/finish/completion times, and `missing_data` naming the
+  entities. `scheduling_config["durations"]` supplies explicit per-entity
+  overrides for the hypothetical report.
+- **Hard vs. soft edges** — `requires_completion`/`requires_arrival_by` edges
+  constrain ordering; `benefits_from` never does. `required_buffer_minutes`
+  arrival buffers are added to start times only when the caller explicitly
+  declares `scheduling_config["duration_unit"]` as `"minutes"` (otherwise
+  they are preserved, reported, and deliberately not mixed into unitless
+  durations).
+- **Completed/blocked work** — committed `done` tasks are complete at `t = 0`
+  and never restarted; committed `blocked` tasks and triage
+  `blocked`/`external` tasks are not scheduled (their finish is unknown and
+  the completion duration covers only schedulable work — see
+  `completion.covers_all_tasks`).
+- **Infeasible proposals are never ordered** — a change set that creates a
+  cycle, a dangling reference, or a hard-constraint violation (the
+  `validate_hard_constraints` engine is reused) returns `feasible: false`,
+  `outcome: "infeasible"`, the stable violations, and `null`
+  schedule/comparison fields.
+- **Comparable-only deltas** — `completion_delta` is computed only when both
+  sides have the same valid unit and durations; otherwise the comparison is
+  marked `incomparable` with a reason. When the two sides exclude different
+  tasks (different blocked/waiting sets), the excluded lists are reported and
+  the limitation text says the delta covers different work sets.
+
+Example (recovery of `project-full` after a `vendor-delivery` outage,
+removing the vendor dependency from `backend-integration`):
+
+```jsonc
+// generate_recovery_schedule("project-full",
+//   changes=[{"action": "remove_dependency",
+//             "dependent": "backend-integration",
+//             "prerequisite": "vendor-delivery"}],
+//   disrupted_entity_id="vendor-delivery")
+{
+  "scenario_id": "project-full",
+  "plan_version": 1,
+  "simulated": true,
+  "disrupted_entity_id": "vendor-delivery",
+  "feasible": true,
+  "outcome": "scheduled",
+  "unit": "duration_units",
+  "schedule": [
+    {"entity_id": "auth-service",         "group": "completed", "layer": 0, "duration": 2.0, "earliest_start": 0.0, "earliest_finish": 0.0, "waiting_time": 0.0, "on_critical_path": false},
+    {"entity_id": "payment-api",          "group": "ready_now", "layer": 1, "duration": 2.0, "earliest_start": 0.0, "earliest_finish": 2.0, "waiting_time": 0.0, "on_critical_path": true},
+    {"entity_id": "vendor-delivery",      "group": "blocked",   "layer": null, "duration": 1.0, "earliest_start": null, "earliest_finish": null, "waiting_time": null, "on_critical_path": false},
+    {"entity_id": "backend-integration",  "group": "ready_now", "layer": 2, "duration": 3.0, "earliest_start": 2.0, "earliest_finish": 5.0, "waiting_time": 0.0, "on_critical_path": true},
+    {"entity_id": "integration-testing",  "group": "ready_now", "layer": 3, "duration": 2.0, "earliest_start": 5.0, "earliest_finish": 7.0, "waiting_time": 0.0, "on_critical_path": true},
+    {"entity_id": "release-validation",   "group": "ready_now", "layer": 4, "duration": 1.0, "earliest_start": 7.0, "earliest_finish": 8.0, "waiting_time": 0.0, "on_critical_path": true},
+    {"entity_id": "production-release",   "group": "ready_now", "layer": 5, "duration": 1.0, "earliest_start": 8.0, "earliest_finish": 9.0, "waiting_time": 0.0, "on_critical_path": true},
+    {"entity_id": "frontend-integration", "group": "ready_now", "layer": 1, "duration": 2.0, "earliest_start": 0.0, "earliest_finish": 2.0, "waiting_time": 0.0, "on_critical_path": false},
+    {"entity_id": "unit-testing",         "group": "ready_now", "layer": 1, "duration": 1.0, "earliest_start": 0.0, "earliest_finish": 1.0, "waiting_time": 0.0, "on_critical_path": false},
+    {"entity_id": "release-notes",        "group": "ready_now", "layer": 1, "duration": 1.0, "earliest_start": 0.0, "earliest_finish": 1.0, "waiting_time": 0.0, "on_critical_path": false}
+  ],
+  "groups": {
+    "completed": ["auth-service"],
+    "ready_now": ["payment-api", "backend-integration", "integration-testing",
+                  "release-validation", "production-release",
+                  "frontend-integration", "unit-testing", "release-notes"],
+    "waiting": [],
+    "blocked": ["vendor-delivery"]
+  },
+  "execution_order": ["payment-api", "frontend-integration", "unit-testing",
+                      "release-notes", "backend-integration",
+                      "integration-testing", "release-validation",
+                      "production-release"],
+  "parallel_groups": [
+    {"layer": 1, "entity_ids": ["payment-api", "frontend-integration", "unit-testing", "release-notes"]},
+    {"layer": 2, "entity_ids": ["backend-integration"]},
+    {"layer": 3, "entity_ids": ["integration-testing"]},
+    {"layer": 4, "entity_ids": ["release-validation"]},
+    {"layer": 5, "entity_ids": ["production-release"]}
+  ],
+  "completion": {"duration": 9.0, "unit": "duration_units",
+                 "covers_all_tasks": false,
+                 "excluded_tasks": ["vendor-delivery"]},
+  "baseline": { /* committed plan's schedule: ready_now has only
+                   payment-api, frontend-integration, unit-testing,
+                   release-notes; blocked additionally has
+                   backend-integration, integration-testing,
+                   release-validation, production-release */ },
+  "comparison": {
+    "comparable": true,
+    "baseline_completion_duration": 2.0,
+    "proposed_completion_duration": 9.0,
+    "completion_delta": 7.0,
+    "newly_unblocked": ["backend-integration", "integration-testing",
+                         "release-validation", "production-release"],
+    "baseline_excluded_tasks": ["vendor-delivery", "backend-integration",
+                                "integration-testing", "release-validation",
+                                "production-release"],
+    "proposed_excluded_tasks": ["vendor-delivery"],
+    "parallelism": {"baseline_layer_count": 1, "proposed_layer_count": 5,
+                    "baseline_max_group_size": 4, "proposed_max_group_size": 4}
+  },
+  "violations": [],
+  "missing_data": []
+}
+```
+
+Read the `completion_delta = 7.0` together with `*_excluded_tasks`: the
+baseline makespan (2.0) covers only the four tasks that were schedulable
+*without* the vendor, while the recovery makespan (9.0) additionally covers
+the four newly unblocked tasks — the recovery does not make the project
+slower, it makes more of it schedulable. Full `assumptions`, `limitations`,
+and per-task `task_offset_changes` are always present in the real response.
+
+## 19. MCP client, local API adapter, and conversational assistant (Person 4)
+
+### Architecture
+
+```
+Browser (React dashboard)
+   │  REST: /api/health, /api/mcp/tools, /api/mcp/tool, /api/assistant/chat
+   ▼
+rippleback-adapter  (src/rippleback/adapter.py — Starlette, localhost:8001)
+   │  owns the ONE genuine MCP session (official Python MCP SDK, Streamable HTTP)
+   ▼
+rippleback-mcp      (src/rippleback/server.py — http://127.0.0.1:8000/mcp)
+```
+
+The browser never speaks MCP directly and never holds an MCP session. The
+adapter is the single genuine MCP client of the application; the previous
+hand-rolled Node shim (`frontend/proxy-server.cjs`, raw JSON-RPC without a
+session handshake) was removed and replaced by it. The Vite dev server proxies
+`/api/*` to the adapter (`RIPPLEBACK_ADAPTER_PORT`, default `8001`).
+
+### MCP client (`src/rippleback/client.py`)
+
+`RippleBackMCPClient` wraps the official SDK (`mcp.ClientSession` +
+`mcp.client.streamable_http.streamable_http_client`):
+
+- **Connection management** — one initialized session reused across requests;
+  `connect`/`disconnect` lifecycle; transport failures tear the session down
+  in-place (never in a fire-and-forget task) and the next call reconnects.
+  SDK transport failures that surface as `CancelledError` are converted to
+  `MCPConnectionError` unless the task itself is being cancelled.
+- **Tool discovery** — `list_tools()` calls the live `tools/list`; names,
+  descriptions, and JSON input schemas are cached and refreshable. Nothing is
+  hardcoded, so newly registered tools (e.g. a scheduling tool) are discovered
+  without any frontend or assistant change.
+- **Invocation** — `call_tool()` validates arguments against the discovered
+  input schema (required fields, unknown fields, scalar types), performs a
+  real `tools/call`, parses the structured JSON result, and raises
+  `MCPToolFailedError` on `isError` — tool errors are never converted into
+  successful-looking responses.
+- **Concurrency** — session access is serialized with an `asyncio.Lock`;
+  concurrent requests are safe.
+- **Retries** — none for tool calls (future tools may not be read-only);
+  failures surface as clear, recoverable errors instead. Read-only
+  `tools/list` reconnects automatically on the next use.
+
+### Local API adapter (`src/rippleback/adapter.py`)
+
+`rippleback-adapter` (Starlette + uvicorn, binds `127.0.0.1:8001` by default):
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/health` | MCP connection state, discovered tool names, active assistant provider (503 when the MCP server is down) |
+| `GET /api/mcp/tools[?refresh=1]` | Live-discovered tools with descriptions + input schemas |
+| `POST /api/mcp/tool` | `{tool, arguments}` → `{result}` or `{error, isError: true}` (400 bad input, 404 unknown tool, 503 MCP unreachable) |
+| `POST /api/assistant/chat` | `{message, scenario_id?, provider?}` → reply + full tool-call trace |
+
+### Assistant (`src/rippleback/assistant/`)
+
+Pipeline, with each concern separated:
+
+1. **User message** (+ the dashboard's currently selected scenario).
+2. **Intent + parameter extraction** — `intents.py` deterministically maps the
+   message to one intent and extracts literal parameters (`delay_minutes`,
+   `severity`, `option_id`, `expected_plan_version`, `reason`, `event_type`).
+   `providers.py` provides the provider abstraction: `DeterministicProvider`
+   (default, offline) and optional `BedrockProvider`.
+3. **Tool selection** — `orchestrator.py` sequences *live-discovered* MCP
+   tools per intent; a scheduling tool is routed by name only if registered.
+4. **MCP invocation** — every call goes through the MCP client; no engine
+   function is called directly.
+5. **Result interpretation** — `explain.py` renders concise Markdown from the
+   actual structured results (affected entities, evidence paths, verdicts,
+   excluded options, missing data), always labelling hypothetical results.
+6. **Reply** — explanation + expandable per-tool trace (arguments, status,
+   duration, structured result) in the dashboard's Assistant view.
+
+Supported intents: plan state, disruption simulation, blocker triage,
+recovery alternatives, substitutes, proposal evaluation, hard-constraint
+validation, option comparison, delivery forecast, workload rebalancing,
+recovery scheduling (when a scheduling tool exists), a multi-step recovery
+workflow (triage → alternatives → compare, fed with actual intermediate
+results), and help.
+
+Safety properties:
+
+- Entity/scenario resolution uses **live `get_plan_state` data**; unknown
+  mentions produce a clarification question listing real entities — ids are
+  never guessed or hardcoded.
+- A per-turn tool-call budget (`RIPPLEBACK_MAX_TOOL_CALLS`, default 8) bounds
+  runaway workflows; a failed step stops the chain with an honest explanation.
+- No dates, cost, risk, capacity, substitute availability, or schedule
+  improvements are ever fabricated; forecasts stay relative
+  (steps/duration_units); "structurally valid" is never presented as
+  business-safe; nothing is written to the committed plan.
+
+### Assistant providers
+
+`RIPPLEBACK_ASSISTANT_PROVIDER=deterministic|bedrock` (default
+`deterministic`). The Bedrock provider is optional and only selected when
+configured; it reads `RIPPLEBACK_BEDROCK_REGION` and
+`RIPPLEBACK_BEDROCK_MODEL_ID` (no model id is guessed — unset means disabled),
+uses the backend's standard AWS credential chain (`pip install -e ".[bedrock]"`
+for boto3), sends the model the live tool catalog, validates everything it
+returns, and falls back to the deterministic interpreter on any failure
+(auth, throttle, timeout, malformed output) — the reply metadata states the
+provider actually used and why a fallback happened. The application fully
+works without Bedrock credentials.
+
+### Example natural-language workflows
+
+```
+"Show me the current plan."
+  → get_plan_state
+
+"What happens if the payment API goes down?"
+  → get_plan_state (resolve entity) → simulate_disruption
+
+"The payment API is down. Tell me what is blocked, find recovery
+ alternatives, and compare the options."
+  → get_plan_state → analyze_blocked_tasks →
+    find_alternative_dependencies → compare_recovery_options(options=…)
+    (the options passed to compare are the ones alternatives returned)
+
+"Evaluate this recovery proposal: drop-dependency:backend-integration->payment-api"
+  → get_plan_state (plan version) → evaluate_recovery_plan
+
+"Can you rebalance the workload?"
+  → get_plan_state → rebalance_workload
+
+"Generate a recovery schedule after this disruption."
+  → honest answer listing the live tools when no scheduling tool is
+    registered; automatic routing once one is.
+```
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Dashboard shows "MCP offline" | Start `rippleback-mcp`, then `rippleback-adapter`; press Ping in the MCP Inspector. Mock data is clearly labelled while offline. |
+| Chat replies "MCP server unreachable" | The adapter is up but the MCP server is not (or `RIPPLEBACK_MCP_URL` is wrong). Fix the server and press Retry. |
+| Adapter returns 503 on `/api/health` | Same as above — health reports the *MCP* server's state. |
+| Adapter refuses to start / port in use | Set `RIPPLEBACK_ADAPTER_PORT` (and the same value in the frontend env for the Vite proxy target). |
+| Bedrock replies say "deterministic fallback" | Set `RIPPLEBACK_BEDROCK_REGION` + `RIPPLEBACK_BEDROCK_MODEL_ID`, install `.[bedrock]`, and ensure the backend's AWS credentials work. |
 
 ## Data contract
 

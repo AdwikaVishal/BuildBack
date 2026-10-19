@@ -658,6 +658,7 @@ MILESTONE6_TOOLS = {
     "validate_hard_constraints",
     "compare_recovery_options",
     "find_substitute_options",
+    "generate_recovery_schedule",
 }
 DROP_OPTION_ID = "drop-dependency:backend-integration->payment-api"
 DROP_CHANGE = {
@@ -1020,6 +1021,10 @@ async def test_milestone6_tools_do_not_mutate_plan(server_url: str) -> None:
             await session.call_tool(
                 "find_substitute_options",
                 {"scenario_id": SEEDED_SCENARIO_ID, "entity_id": "payment-api"},
+            )
+            await session.call_tool(
+                "generate_recovery_schedule",
+                {"scenario_id": SEEDED_SCENARIO_ID},
             )
 
             after = await session.call_tool(

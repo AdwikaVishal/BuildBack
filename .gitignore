@@ -24,6 +24,9 @@ dist/
 *.sqlite3
 *.sqlite
 data/
+# …but NOT frontend source fixtures: frontend/src/data holds committed
+# TypeScript mock data (a previously-untracked copy broke the build).
+!frontend/src/data/
 
 # Generated artifacts / logs
 *.log

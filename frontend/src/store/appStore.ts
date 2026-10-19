@@ -12,10 +12,27 @@ import type {
   RecoveryResult,
   EvaluationResult,
   ComparisonResult,
+  ScheduleResult,
   MCPConnectionStatus,
   DisruptionSeverity,
   EventType,
+  ChatMessage,
 } from '../types';
+import {
+  MOCK_MODE,
+  mockActivityLog,
+  mockChatSeed,
+  mockConnectionStatus,
+} from '../data/mock';
+import {
+  MOCK_PLAN,
+  MOCK_IMPACT,
+  MOCK_TRIAGE,
+  MOCK_RECOVERY,
+  MOCK_COMPARISON,
+  MOCK_EVALUATION,
+  MOCK_SCHEDULE,
+} from '../data/mockFixtures';
 
 // ── Activity log ──────────────────────────────────────────────────────────────
 
@@ -36,7 +53,7 @@ export const WORKFLOW_STAGES = [
   'impact_analyzed',
   'recovery_generated',
   'option_selected',
-  'approval_confirmed',
+  'schedule_generated',
 ] as const;
 
 export type WorkflowStage = typeof WORKFLOW_STAGES[number];
@@ -47,7 +64,7 @@ export const STAGE_LABELS: Record<WorkflowStage, string> = {
   impact_analyzed:      'Impact analyzed',
   recovery_generated:   'Recovery options generated',
   option_selected:      'Option selected for review',
-  approval_confirmed:   'Approval confirmed',
+  schedule_generated:   'Proposed schedule generated',
 };
 
 // ── State shape ───────────────────────────────────────────────────────────────
@@ -79,12 +96,10 @@ export interface AppState {
   recoveryResult: RecoveryResult | null;
   evaluationResult: EvaluationResult | null;
   comparisonResult: ComparisonResult | null;
+  scheduleResult: ScheduleResult | null;
 
   // Selected recovery option
   selectedOptionId: string | null;
-  approvalPending: boolean;
-  approvalConfirmed: boolean;
-  commitError: string | null;
 
   // MCP connection
   mcpStatus: MCPConnectionStatus;
@@ -95,6 +110,16 @@ export interface AppState {
   // Graph: entity highlighted from impact panel click
   highlightedEntityId: string | null;
 
+  // Conversational assistant (Person 4) — messages + in-flight flag
+  chat: {
+    messages: ChatMessage[];
+    busy: boolean;
+  };
+
+  // Layout chrome
+  assistantOpen: boolean;
+  sidebarCollapsed: boolean;
+
   // Loading / error per operation
   loading: Record<string, boolean>;
   errors: Record<string, string | null>;
@@ -102,30 +127,43 @@ export interface AppState {
 
 const INITIAL_STATE: AppState = {
   activeScenarioId: 'project-full',
-  planData: null,
+  planData: MOCK_MODE ? MOCK_PLAN : null,
   planLoading: false,
   planError: null,
-  activeView: 'graph',
-  disruption: {
-    active: false,
-    entityId: 'payment-api',
-    reason: 'Service outage — Payment API is down',
-    severity: 'high',
-    eventType: 'service_outage',
-    simulated: false,
-  },
-  impactResult: null,
-  triageResult: null,
-  recoveryResult: null,
-  evaluationResult: null,
-  comparisonResult: null,
-  selectedOptionId: null,
-  approvalPending: false,
-  approvalConfirmed: false,
-  commitError: null,
-  mcpStatus: { connected: false, serverUrl: '/api/mcp' },
-  activityLog: [],
+  activeView: 'overview',
+  disruption: MOCK_MODE
+    ? {
+        active: true,
+        entityId: MOCK_IMPACT.disruption.entity_id,
+        reason: MOCK_IMPACT.disruption.reason,
+        severity: MOCK_IMPACT.disruption.severity,
+        eventType: 'service_outage',
+        delayMinutes: 45,
+        simulated: true,
+      }
+    : {
+        active: false,
+        entityId: 'payment-api',
+        reason: 'Service outage — Payment API is down',
+        severity: 'high',
+        eventType: 'service_outage',
+        simulated: false,
+      },
+  impactResult: MOCK_MODE ? MOCK_IMPACT : null,
+  triageResult: MOCK_MODE ? MOCK_TRIAGE : null,
+  recoveryResult: MOCK_MODE ? MOCK_RECOVERY : null,
+  evaluationResult: MOCK_MODE ? MOCK_EVALUATION : null,
+  comparisonResult: MOCK_MODE ? MOCK_COMPARISON : null,
+  scheduleResult: MOCK_MODE ? MOCK_SCHEDULE : null,
+  selectedOptionId: MOCK_MODE ? MOCK_COMPARISON.recommendation ?? null : null,
+  mcpStatus: MOCK_MODE ? mockConnectionStatus() : { connected: false, serverUrl: '/api/mcp' },
+  activityLog: MOCK_MODE ? mockActivityLog() : [],
   highlightedEntityId: null,
+  chat: MOCK_MODE
+    ? { messages: mockChatSeed() as ChatMessage[], busy: false }
+    : { messages: [], busy: false },
+  assistantOpen: false, // opened on desktop mount (see App.tsx)
+  sidebarCollapsed: false,
   loading: {},
   errors: {},
 };
@@ -144,23 +182,37 @@ export type AppAction =
   | { type: 'SET_RECOVERY'; result: RecoveryResult }
   | { type: 'SET_EVALUATION'; result: EvaluationResult }
   | { type: 'SET_COMPARISON'; result: ComparisonResult }
+  | { type: 'SET_SCHEDULE'; result: ScheduleResult | null }
   | { type: 'SELECT_OPTION'; optionId: string }
-  | { type: 'SET_APPROVAL_PENDING'; pending: boolean }
-  | { type: 'CONFIRM_APPROVAL' }
-  | { type: 'SET_COMMIT_ERROR'; error: string }
   | { type: 'RESET_DISRUPTION' }
   | { type: 'SET_MCP_STATUS'; status: MCPConnectionStatus }
   | { type: 'SET_LOADING'; key: string; loading: boolean }
   | { type: 'SET_ERROR'; key: string; error: string | null }
   | { type: 'LOG_ACTIVITY'; stage: string; label: string; status: ActivityStatus; detail?: string }
-  | { type: 'SET_HIGHLIGHTED_ENTITY'; entityId: string | null };
+  | { type: 'CHAT_ADD_MESSAGE'; message: ChatMessage }
+  | { type: 'CHAT_UPDATE_MESSAGE'; id: string; patch: Partial<ChatMessage> }
+  | { type: 'CHAT_SET_BUSY'; busy: boolean }
+  | { type: 'SET_HIGHLIGHTED_ENTITY'; entityId: string | null }
+  | { type: 'SET_ASSISTANT_OPEN'; open: boolean }
+  | { type: 'SET_SIDEBAR_COLLAPSED'; collapsed: boolean };
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
 
 function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_SCENARIO':
-      return { ...INITIAL_STATE, activeScenarioId: action.scenarioId, mcpStatus: state.mcpStatus };
+      // Conversation history, MCP status, and layout chrome survive scenario
+      // switches; the scenario id is sent with each chat message, not baked
+      // into history.
+      return {
+        ...INITIAL_STATE,
+        activeScenarioId: action.scenarioId,
+        mcpStatus: state.mcpStatus,
+        chat: state.chat,
+        assistantOpen: state.assistantOpen,
+        sidebarCollapsed: state.sidebarCollapsed,
+        activeView: state.activeView,
+      };
     case 'SET_PLAN_LOADING':
       return { ...state, planLoading: action.loading, planError: null };
     case 'SET_PLAN':
@@ -170,6 +222,22 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'SET_VIEW':
       return { ...state, activeView: action.view };
     case 'TRIGGER_DISRUPTION':
+      if (MOCK_MODE) {
+        // Mock mode: keep the captured result slices on every page — only the
+        // disruption description itself changes with the user's input.
+        return {
+          ...state,
+          disruption: {
+            active: true,
+            entityId: action.entityId,
+            reason: action.reason,
+            severity: action.severity,
+            eventType: action.eventType,
+            delayMinutes: action.delayMinutes,
+            simulated: true,
+          },
+        };
+      }
       return {
         ...state,
         disruption: {
@@ -183,8 +251,8 @@ function reducer(state: AppState, action: AppAction): AppState {
         },
         // clear stale results
         impactResult: null, triageResult: null, recoveryResult: null,
-        evaluationResult: null, comparisonResult: null,
-        selectedOptionId: null, approvalPending: false, approvalConfirmed: false, commitError: null,
+        evaluationResult: null, comparisonResult: null, scheduleResult: null,
+        selectedOptionId: null,
         highlightedEntityId: null,
       };
     case 'SET_IMPACT':
@@ -197,26 +265,48 @@ function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, evaluationResult: action.result };
     case 'SET_COMPARISON':
       return { ...state, comparisonResult: action.result };
+    case 'SET_SCHEDULE':
+      return { ...state, scheduleResult: action.result };
     case 'SELECT_OPTION':
-      return { ...state, selectedOptionId: action.optionId, approvalPending: false, approvalConfirmed: false, commitError: null };
-    case 'SET_APPROVAL_PENDING':
-      return { ...state, approvalPending: action.pending };
-    case 'CONFIRM_APPROVAL':
-      return { ...state, approvalConfirmed: true, approvalPending: false };
-    case 'SET_COMMIT_ERROR':
-      return { ...state, commitError: action.error, approvalPending: false };
+      // A new selection invalidates the previous option's evaluation —
+      // never display one option's verdict under another option's name.
+      return {
+        ...state,
+        selectedOptionId: action.optionId,
+        evaluationResult: action.optionId === state.selectedOptionId
+          ? state.evaluationResult
+          : null,
+      };
     case 'RESET_DISRUPTION':
+      if (MOCK_MODE) {
+        // Mock mode: restore the captured post-simulation seed instead of
+        // emptying every page.
+        return {
+          ...state,
+          disruption: { ...INITIAL_STATE.disruption },
+          impactResult: INITIAL_STATE.impactResult,
+          triageResult: INITIAL_STATE.triageResult,
+          recoveryResult: INITIAL_STATE.recoveryResult,
+          evaluationResult: INITIAL_STATE.evaluationResult,
+          comparisonResult: INITIAL_STATE.comparisonResult,
+          scheduleResult: INITIAL_STATE.scheduleResult,
+          selectedOptionId: INITIAL_STATE.selectedOptionId,
+          activityLog: INITIAL_STATE.activityLog,
+          highlightedEntityId: null,
+        };
+      }
       return {
         ...state,
         disruption: { ...INITIAL_STATE.disruption },
         impactResult: null, triageResult: null, recoveryResult: null,
-        evaluationResult: null, comparisonResult: null,
-        selectedOptionId: null, approvalPending: false, approvalConfirmed: false, commitError: null,
+        evaluationResult: null, comparisonResult: null, scheduleResult: null,
+        selectedOptionId: null,
         activityLog: [],
         highlightedEntityId: null,
       };
     case 'SET_MCP_STATUS':
-      return { ...state, mcpStatus: action.status };
+      // Mock mode: the connection is always the captured connected status.
+      return { ...state, mcpStatus: MOCK_MODE ? mockConnectionStatus() : action.status };
     case 'SET_LOADING':
       return { ...state, loading: { ...state.loading, [action.key]: action.loading } };
     case 'SET_ERROR':
@@ -234,6 +324,24 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
     case 'SET_HIGHLIGHTED_ENTITY':
       return { ...state, highlightedEntityId: action.entityId };
+    case 'SET_ASSISTANT_OPEN':
+      return { ...state, assistantOpen: action.open };
+    case 'SET_SIDEBAR_COLLAPSED':
+      return { ...state, sidebarCollapsed: action.collapsed };
+    case 'CHAT_ADD_MESSAGE':
+      return { ...state, chat: { ...state.chat, messages: [...state.chat.messages, action.message] } };
+    case 'CHAT_UPDATE_MESSAGE':
+      return {
+        ...state,
+        chat: {
+          ...state.chat,
+          messages: state.chat.messages.map((m) =>
+            m.id === action.id ? { ...m, ...action.patch } : m,
+          ),
+        },
+      };
+    case 'CHAT_SET_BUSY':
+      return { ...state, chat: { ...state.chat, busy: action.busy } };
     default:
       return state;
   }

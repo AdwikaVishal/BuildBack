@@ -24,8 +24,8 @@ export function TimelineChart({ forecast, loading }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 gap-3">
-        <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-gray-500">Computing forecast…</span>
+        <div className="w-6 h-6 border-2 border-acid border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-ink-muted">Computing forecast…</span>
       </div>
     );
   }
@@ -43,12 +43,12 @@ export function TimelineChart({ forecast, loading }: Props) {
   if (!forecast.feasible) {
     return (
       <div className="p-6 space-y-3">
-        <div className="flex items-start gap-3 p-4 bg-red-900/20 border border-red-900 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+        <div className="flex items-start gap-3 p-4 bg-red-900/20 border border-fail/40 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-fail flex-shrink-0" />
           <div>
-            <p className="text-sm text-red-300 font-medium">Infeasible change set</p>
+            <p className="text-sm text-fail font-medium">Infeasible change set</p>
             {forecast.error && (
-              <p className="text-xs text-red-500 mt-1 font-mono">[{forecast.error.code}] {forecast.error.message}</p>
+              <p className="text-xs text-fail mt-1 font-mono">[{forecast.error.code}] {forecast.error.message}</p>
             )}
           </div>
         </div>
@@ -79,17 +79,17 @@ export function TimelineChart({ forecast, loading }: Props) {
 
   // Summary bar chart data
   const summaryData = [
-    { name: 'Baseline',  length: baseLen,    fill: '#3b82f6' },
-    { name: 'Forecast',  length: forecastLen, fill: delta > 0 ? '#f59e0b' : delta < 0 ? '#10b981' : '#6b7280' },
+    { name: 'Baseline',  length: baseLen,    fill: '#75BFFF' },
+    { name: 'Forecast',  length: forecastLen, fill: delta > 0 ? '#FFBF4A' : delta < 0 ? '#75E6A0' : '#737368' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Simulated badge */}
       <div className="flex items-center gap-2 px-1">
-        <span className="tag-simulated text-[10px]">SIMULATED</span>
-        <span className="text-xs text-gray-600">
-          Relative critical-path durations in <span className="font-mono text-gray-500">{unit}</span>. Not wall-clock dates.
+        <span className="tag-simulated text-[11px]">SIMULATED</span>
+        <span className="text-xs text-ink-muted">
+          Relative critical-path durations in <span className="font-mono text-ink-muted">{unit}</span>. Not wall-clock dates.
         </span>
       </div>
 
@@ -113,29 +113,29 @@ export function TimelineChart({ forecast, loading }: Props) {
 
       {/* Horizontal bar: baseline vs forecast length */}
       <div className="card p-4">
-        <p className="text-xs font-medium text-gray-400 mb-4">Critical-Path Length Comparison</p>
-        <ResponsiveContainer width="100%" height={100}>
+        <p className="text-sm font-medium text-ink-secondary mb-4">Critical-Path Length Comparison</p>
+        <ResponsiveContainer width="100%" height={130}>
           <BarChart data={summaryData} layout="vertical" barCategoryGap="30%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a2440" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#303027" horizontal={false} />
             <XAxis
               type="number"
               domain={[0, Math.max(baseLen, forecastLen) * 1.15]}
-              tick={{ fill: '#6b7280', fontSize: 11, fontFamily: 'monospace' }}
-              axisLine={{ stroke: '#1a2440' }}
+              tick={{ fill: '#737368', fontSize: 12, fontFamily: 'monospace' }}
+              axisLine={{ stroke: '#303027' }}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
+              tick={{ fill: '#A3A397', fontSize: 13, fontFamily: 'monospace' }}
               axisLine={false}
               tickLine={false}
-              width={72}
+              width={100}
             />
             <Tooltip
-              contentStyle={{ background: '#0f1629', border: '1px solid #1a2440', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
-              labelStyle={{ color: '#9ca3af' }}
-              itemStyle={{ color: '#d1d5db' }}
+              contentStyle={{ background: '#171713', border: '1px solid #303027', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
+              labelStyle={{ color: '#A3A397' }}
+              itemStyle={{ color: '#F7F7F0' }}
               formatter={(v: number) => [`${v} ${unit}`, 'Length']}
             />
             <Bar dataKey="length" radius={[0, 4, 4, 0]}>
@@ -143,41 +143,41 @@ export function TimelineChart({ forecast, loading }: Props) {
                 <Cell key={i} fill={entry.fill} />
               ))}
             </Bar>
-            <ReferenceLine x={baseLen} stroke="#3b82f6" strokeDasharray="4 2" label={{ value: 'baseline', position: 'insideTopRight', fill: '#3b82f6', fontSize: 10, fontFamily: 'monospace' }} />
+            <ReferenceLine x={baseLen} stroke="#75BFFF" strokeDasharray="4 2" label={{ value: 'baseline', position: 'insideTopRight', fill: '#75BFFF', fontSize: 11, fontFamily: 'monospace' }} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Path membership chart */}
       <div className="card p-4">
-        <p className="text-xs font-medium text-gray-400 mb-4">Critical-Path Membership</p>
-        <ResponsiveContainer width="100%" height={Math.max(160, pathData.length * 36)}>
+        <p className="text-sm font-medium text-ink-secondary mb-4">Critical-Path Membership</p>
+        <ResponsiveContainer width="100%" height={Math.max(220, pathData.length * 42)}>
           <BarChart data={pathData} layout="vertical" barCategoryGap="20%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a2440" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#303027" horizontal={false} />
             <XAxis
               type="number"
               domain={[0, 1]}
               ticks={[0, 1]}
               tickFormatter={(v) => v === 1 ? 'On path' : ''}
-              tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' }}
-              axisLine={{ stroke: '#1a2440' }}
+              tick={{ fill: '#737368', fontSize: 12, fontFamily: 'monospace' }}
+              axisLine={{ stroke: '#303027' }}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="id"
-              tick={{ fill: '#9ca3af', fontSize: 10, fontFamily: 'monospace' }}
+              tick={{ fill: '#A3A397', fontSize: 12, fontFamily: 'monospace' }}
               axisLine={false}
               tickLine={false}
-              width={160}
+              width={220}
             />
             <Tooltip
-              contentStyle={{ background: '#0f1629', border: '1px solid #1a2440', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
+              contentStyle={{ background: '#171713', border: '1px solid #303027', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
               formatter={(v: number, name: string) => [v === 1 ? 'On path' : 'Off path', name]}
             />
-            <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'monospace', color: '#9ca3af' }} />
-            <Bar dataKey="Baseline" fill="#3b82f6" radius={[0, 3, 3, 0]} />
-            <Bar dataKey="Forecast" fill="#10b981" radius={[0, 3, 3, 0]} />
+            <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'monospace', color: '#A3A397' }} />
+            <Bar dataKey="Baseline" fill="#75BFFF" radius={[0, 3, 3, 0]} />
+            <Bar dataKey="Forecast" fill="#75E6A0" radius={[0, 3, 3, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -186,14 +186,14 @@ export function TimelineChart({ forecast, loading }: Props) {
       {delta !== 0 && (
         <div className={clsx(
           'flex items-start gap-3 p-3 rounded-lg border text-xs',
-          delta > 0 ? 'bg-yellow-900/20 border-yellow-800 text-yellow-300' : 'bg-emerald-900/20 border-emerald-800 text-emerald-300',
+          delta > 0 ? 'bg-warn/10 border-warn/40 text-warn' : 'bg-ok/10 border-ok/40 text-ok',
         )}>
           <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <div>
             <span className="font-medium">{delta > 0 ? 'Delay added:' : 'Delay reduced:'} </span>
             <span>{Math.abs(delta)} {unit}</span>
             {delta > 0 && (
-              <span className="text-gray-400 ml-1">
+              <span className="text-ink-secondary ml-1">
                 — this option extends the critical path. Consider whether bypassing the dependency is worth the trade-off.
               </span>
             )}
@@ -203,7 +203,7 @@ export function TimelineChart({ forecast, loading }: Props) {
 
       {/* Assumptions */}
       {forecast.limitations.length > 0 && (
-        <div className="text-[10px] text-gray-700 space-y-0.5 border-t border-surface-700 pt-3">
+        <div className="text-[11px] text-ink-muted space-y-0.5 border-t border-border pt-3">
           {forecast.limitations.slice(0, 3).map((l, i) => <p key={i}>{l}</p>)}
         </div>
       )}
@@ -228,18 +228,18 @@ function SummaryCard({
 }) {
   return (
     <div className="card p-3 space-y-1">
-      <p className="text-[10px] text-gray-600 uppercase tracking-wide">{label}</p>
+      <p className="text-[11px] text-ink-muted uppercase tracking-wide">{label}</p>
       <p className={clsx(
         'font-mono font-bold',
         large ? 'text-2xl' : 'text-lg',
-        highlight === 'warn'    ? 'text-yellow-400' :
-        highlight === 'good'    ? 'text-emerald-400' :
-        highlight === 'neutral' ? 'text-gray-400' :
-        'text-gray-200',
+        highlight === 'warn'    ? 'text-warn' :
+        highlight === 'good'    ? 'text-ok' :
+        highlight === 'neutral' ? 'text-ink-secondary' :
+        'text-ink',
       )}>
         {value}
       </p>
-      <p className="text-[10px] text-gray-600">{unit}</p>
+      <p className="text-[10px] text-ink-muted">{unit}</p>
     </div>
   );
 }

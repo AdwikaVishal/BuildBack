@@ -41,6 +41,7 @@ ENGINE_MODULES = (
     "scoring",
     "comparison",
     "recovery",
+    "scheduler",
 )
 
 ORIGINAL_TOOLS = {
@@ -67,6 +68,13 @@ NEW_TOOLS = {
     "validate_hard_constraints": ["scenario_id", "changes"],
     "compare_recovery_options": ["scenario_id", "options", "weights"],
     "find_substitute_options": ["scenario_id", "entity_id"],
+    "generate_recovery_schedule": [
+        "scenario_id",
+        "changes",
+        "option_id",
+        "disrupted_entity_id",
+        "scheduling_config",
+    ],
 }
 
 
@@ -100,7 +108,7 @@ def _registered_tools() -> dict[str, list[str]]:
 
 
 class TestToolRegistration:
-    def test_all_ten_tools_registered_exactly_once(self) -> None:
+    def test_all_tools_registered_exactly_once(self) -> None:
         registered = _registered_tools()
         expected = set(ORIGINAL_TOOLS) | set(NEW_TOOLS)
         assert set(registered) == expected

@@ -1,12 +1,16 @@
 /**
  * DependencyGraph — interactive React Flow dependency visualisation.
  *
- * Improvements over v1:
- *  - Graph controls bar: fit-to-screen, zoom +/-, reset layout, hide-done toggle, filter by state
- *  - Richer node detail panel: dependencies in/out, downstream effects, forecast delta
- *  - Highlighted entity driven by store (clicked from ImpactPanel)
+ * Refinement notes:
+ *  - Larger, readable node cards (≥188px wide, 13px labels, 11px badges)
+ *  - Fit-to-screen caps zoom at 1× so nodes are never shrunk to dots;
+ *    manual zoom/pan stays in control (no repeated auto-fit)
+ *  - Graph controls: fit, zoom ±, reset layout, center-selected, minimap
+ *    toggle, hide-done toggle, filter by state
+ *  - Compact 168×112 minimap with a lime viewport mask, toggleable
+ *  - Collapsible legend; node detail panel with deps, evidence, forecast
+ *  - Highlighted entity (from ImpactPanel) is selected AND centred once
  *  - Status labels always visible (not colour-only)
- *  - Better legend with dependency-type labels
  */
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import ReactFlow, {
@@ -29,7 +33,7 @@ import type { Scenario, TriageResult, TriageState, EntityStatus, Entity } from '
 import { StatusBadge } from './ui/StatusBadge';
 import {
   X, ExternalLink, Clock, Layers, Maximize2, ZoomIn, ZoomOut,
-  RotateCcw, EyeOff, Eye, Filter,
+  RotateCcw, EyeOff, Eye, Filter, Crosshair, Map, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useApp } from '../store/appStore';
 
@@ -37,15 +41,15 @@ import { useApp } from '../store/appStore';
 
 function stateColor(state: TriageState | EntityStatus): { bg: string; border: string; text: string } {
   const map: Record<string, { bg: string; border: string; text: string }> = {
-    blocked:     { bg: '#1f1010', border: '#ef4444', text: '#fca5a5' },
-    external:    { bg: '#1e1208', border: '#f97316', text: '#fdba74' },
-    at_risk:     { bg: '#1e190a', border: '#f59e0b', text: '#fde68a' },
-    healthy:     { bg: '#0c1e14', border: '#10b981', text: '#6ee7b7' },
-    done:        { bg: '#111418', border: '#374151', text: '#6b7280' },
-    pending:     { bg: '#160e2a', border: '#7c3aed', text: '#c4b5fd' },
-    in_progress: { bg: '#0d1526', border: '#2563eb', text: '#93c5fd' },
+    blocked:     { bg: '#1C1111', border: '#FF6464', text: '#FFB3B3' },
+    external:    { bg: '#0F1620', border: '#75BFFF', text: '#B9DCFF' },
+    at_risk:     { bg: '#1B160B', border: '#FFBF4A', text: '#FFDFA6' },
+    healthy:     { bg: '#0E1A12', border: '#75E6A0', text: '#A9EFC5' },
+    done:        { bg: '#141412', border: '#3E3E32', text: '#737368' },
+    pending:     { bg: '#161613', border: '#3E3E32', text: '#A3A397' },
+    in_progress: { bg: '#0F1520', border: '#56A8E0', text: '#A9D3F5' },
   };
-  return map[state] ?? { bg: '#141d35', border: '#273660', text: '#9ca3af' };
+  return map[state] ?? { bg: '#171713', border: '#303027', text: '#A3A397' };
 }
 
 // ── Custom node ───────────────────────────────────────────────────────────────
@@ -74,29 +78,30 @@ function EntityNode({ data }: { data: NodeData }) {
       />
       <div
         className={clsx(
-          'relative px-3 py-2.5 rounded-lg cursor-pointer transition-all select-none',
-          'border-2 shadow-lg min-w-[152px]',
-          isCriticalPath && 'ring-2 ring-amber-500/50 ring-offset-1 ring-offset-transparent',
+          'relative px-3.5 py-3 rounded-lg cursor-pointer transition-all select-none',
+          'border shadow-lg min-w-[188px] max-w-[230px]',
+          isCriticalPath && 'ring-1 ring-warn/60',
           isOnEvidencePath && 'brightness-125',
-          isHighlighted && 'ring-2 ring-blue-400/80 ring-offset-1 ring-offset-transparent',
+          isHighlighted && 'ring-2 ring-acid/80',
         )}
         style={{
           background: colors.bg,
-          borderColor: isDisrupted ? '#ef4444' : colors.border,
+          borderColor: isDisrupted ? '#FF6464' : colors.border,
         }}
         onClick={() => onSelect(entity, triageState)}
+        title={`${entity.name} — ${displayState.replace('_', ' ')}`}
       >
         {/* Critical path pip */}
         {isCriticalPath && (
-          <div className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_#f59e0b]" />
+          <div className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-warn" />
         )}
-        {/* Disrupted pulse ring */}
+        {/* Disrupted marker */}
         {isDisrupted && (
-          <div className="absolute inset-0 rounded-lg border-2 border-red-500 animate-pulse opacity-40 pointer-events-none" />
+          <div className="absolute inset-0 rounded-lg border-2 border-fail animate-pulse opacity-40 pointer-events-none" />
         )}
 
         {/* Name */}
-        <div className="text-xs font-semibold leading-snug mb-1.5" style={{ color: colors.text }}>
+        <div className="text-[13px] font-semibold leading-tight mb-2" style={{ color: colors.text }}>
           {entity.name}
         </div>
 
@@ -104,18 +109,18 @@ function EntityNode({ data }: { data: NodeData }) {
         <div className="flex items-center gap-1 flex-wrap">
           <StatusBadge status={displayState} showDot />
           {entity.metadata?.external && (
-            <span className="flex items-center gap-0.5 text-[9px] text-orange-400 bg-orange-900/30 border border-orange-900 rounded px-1">
-              <ExternalLink className="w-2 h-2" />EXT
+            <span className="flex items-center gap-0.5 text-[10px] text-info bg-info/10 border border-info/40 rounded px-1 py-px">
+              <ExternalLink className="w-2.5 h-2.5" />EXT
             </span>
           )}
           {entity.metadata?.slack_minutes != null && (
-            <span className="flex items-center gap-0.5 text-[9px] text-cyan-400 bg-cyan-900/20 border border-cyan-900 rounded px-1">
-              <Clock className="w-2 h-2" />{entity.metadata.slack_minutes}m
+            <span className="flex items-center gap-0.5 text-[10px] text-ink-secondary bg-surface-900/60 border border-surface-700 rounded px-1 py-px">
+              <Clock className="w-2.5 h-2.5" />{entity.metadata.slack_minutes}m
             </span>
           )}
           {entity.duration != null && (
-            <span className="flex items-center gap-0.5 text-[9px] text-purple-400 bg-purple-900/20 border border-purple-900 rounded px-1">
-              <Layers className="w-2 h-2" />d={entity.duration}
+            <span className="flex items-center gap-0.5 text-[10px] text-acid bg-acid/5 border border-acid/30 rounded px-1 py-px">
+              <Layers className="w-2.5 h-2.5" />d={entity.duration}
             </span>
           )}
         </div>
@@ -137,8 +142,9 @@ function computeLayout(
   entities: Entity[],
   dependencies: Array<{ dependent: string; prerequisite: string }>,
 ): Record<string, { x: number; y: number }> {
-  const COL_GAP = 230;
-  const ROW_GAP = 110;
+  // Gaps sized for the larger node cards (≈190–230px wide, ~72px tall).
+  const COL_GAP = 290;
+  const ROW_GAP = 128;
 
   const inDeg: Record<string, number> = {};
   const adj:   Record<string, string[]> = {};
@@ -203,18 +209,18 @@ function NodeDetailPanel({ entity, triageState, triageEntry, scenario, compariso
   const nameMap = Object.fromEntries(scenario.entities.map((e) => [e.id, e.name]));
 
   return (
-    <div className="absolute top-3 right-3 z-20 w-80 card shadow-2xl border border-surface-500 overflow-hidden">
+    <div className="absolute top-3 right-3 z-20 w-[86vw] max-w-[352px] card shadow-2xl overflow-hidden">
       <div className="card-header">
         <div className="flex items-center gap-2 min-w-0">
           <StatusBadge status={triageState ?? entity.status} />
-          <span className="text-sm font-semibold text-gray-200 truncate">{entity.name}</span>
+          <span className="text-[15px] font-semibold text-ink truncate">{entity.name}</span>
         </div>
-        <button className="text-gray-500 hover:text-gray-300 flex-shrink-0 ml-2" onClick={onClose}>
+        <button className="text-ink-muted hover:text-ink flex-shrink-0 ml-2" onClick={onClose} aria-label="Close details">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="p-4 space-y-3.5 text-xs overflow-y-auto max-h-[70vh]">
+      <div className="p-4 space-y-3.5 text-[13px] overflow-y-auto max-h-[65vh]">
         {/* Identity */}
         <Grid2>
           <Cell k="ID"       v={entity.id} mono />
@@ -229,14 +235,14 @@ function NodeDetailPanel({ entity, triageState, triageEntry, scenario, compariso
         {/* Triage reason */}
         {triageEntry?.reason && (
           <Section title="Triage reason">
-            <p className="text-gray-400 leading-relaxed">{triageEntry.reason}</p>
+            <p className="text-ink-secondary leading-relaxed">{triageEntry.reason}</p>
           </Section>
         )}
 
         {/* Evidence path */}
         {triageEntry && triageEntry.evidence_path.length > 0 && (
           <Section title="Evidence path">
-            <p className="font-mono text-gray-400 text-[10px] leading-relaxed">
+            <p className="font-mono text-ink-secondary text-[11px] leading-relaxed">
               {triageEntry.evidence_path.map((id) => nameMap[id] ?? id).join(' → ')}
             </p>
           </Section>
@@ -287,15 +293,15 @@ function Grid2({ children }: { children: React.ReactNode }) {
 function Cell({ k, v, mono, highlight }: { k: string; v: string; mono?: boolean; highlight?: 'warn' }) {
   return (
     <>
-      <span className="text-gray-600">{k}</span>
-      <span className={clsx(mono && 'font-mono', highlight === 'warn' ? 'text-orange-400' : 'text-gray-300')}>{v}</span>
+      <span className="text-ink-muted">{k}</span>
+      <span className={clsx(mono && 'font-mono', highlight === 'warn' ? 'text-warn' : 'text-ink-secondary')}>{v}</span>
     </>
   );
 }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-[9px] uppercase tracking-wider text-gray-600">{title}</p>
+      <p className="text-[11px] uppercase tracking-wider text-ink-muted font-medium">{title}</p>
       {children}
     </div>
   );
@@ -303,19 +309,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function DepRow({ id, name, type, direction }: { id: string; name?: string; type?: string; direction: 'in' | 'out' }) {
   const typeLabel = type === 'benefits_from' ? 'soft' : type === 'requires_arrival_by' ? 'arrival_by' : 'requires';
   return (
-    <div className="flex items-center gap-1.5 text-[10px]">
-      <span className={clsx('w-1 h-1 rounded-full flex-shrink-0', direction === 'in' ? 'bg-blue-500' : 'bg-emerald-500')} />
-      <span className="text-gray-300 font-mono truncate">{name ?? id}</span>
-      <span className="text-gray-700 ml-auto flex-shrink-0">{typeLabel}</span>
+    <div className="flex items-center gap-1.5 text-[12px]">
+      <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', direction === 'in' ? 'bg-info' : 'bg-acid')} />
+      <span className="text-ink-secondary font-mono truncate">{name ?? id}</span>
+      <span className="text-ink-muted ml-auto flex-shrink-0">{typeLabel}</span>
     </div>
   );
 }
 function MiniStat({ label, value, unit, highlight }: { label: string; value: string; unit: string; highlight?: 'warn' | 'good' }) {
   return (
-    <div className="bg-surface-700 rounded p-1.5 text-center">
-      <p className="text-[9px] text-gray-600 uppercase">{label}</p>
-      <p className={clsx('text-sm font-bold font-mono', highlight === 'warn' ? 'text-yellow-400' : highlight === 'good' ? 'text-emerald-400' : 'text-gray-300')}>{value}</p>
-      <p className="text-[9px] text-gray-700">{unit}</p>
+    <div className="bg-surface-800 rounded p-2 text-center">
+      <p className="text-[11px] text-ink-muted uppercase">{label}</p>
+      <p className={clsx('text-base font-bold font-mono', highlight === 'warn' ? 'text-warn' : highlight === 'good' ? 'text-ok' : 'text-ink-secondary')}>{value}</p>
+      <p className="text-[11px] text-ink-muted">{unit}</p>
     </div>
   );
 }
@@ -331,53 +337,70 @@ interface ControlsBarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
+  showMiniMap: boolean;
+  onToggleMiniMap: () => void;
+  hasSelection: boolean;
+  onCenterSelected: () => void;
   entityCount: number;
   visibleCount: number;
 }
 
 function GraphControlsBar({
   hideDone, onToggleHideDone, filterState, onFilterChange,
-  onFit, onZoomIn, onZoomOut, onReset, entityCount, visibleCount,
+  onFit, onZoomIn, onZoomOut, onReset,
+  showMiniMap, onToggleMiniMap, hasSelection, onCenterSelected,
+  entityCount, visibleCount,
 }: ControlsBarProps) {
   const FILTER_OPTS = ['all', 'blocked', 'external', 'at_risk', 'healthy', 'done', 'in_progress', 'pending'];
 
   return (
-    <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 pointer-events-none">
+    <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 pointer-events-none flex-wrap">
       {/* Left: zoom/fit controls */}
-      <div className="flex items-center gap-1 bg-surface-800/90 border border-surface-600 rounded-lg p-1 pointer-events-auto shadow-lg backdrop-blur-sm">
-        <CtrlBtn title="Fit to screen" onClick={onFit}><Maximize2 className="w-3.5 h-3.5" /></CtrlBtn>
-        <CtrlBtn title="Zoom in"       onClick={onZoomIn}><ZoomIn className="w-3.5 h-3.5" /></CtrlBtn>
-        <CtrlBtn title="Zoom out"      onClick={onZoomOut}><ZoomOut className="w-3.5 h-3.5" /></CtrlBtn>
-        <div className="w-px h-4 bg-surface-600 mx-0.5" />
-        <CtrlBtn title="Reset layout"  onClick={onReset}><RotateCcw className="w-3.5 h-3.5" /></CtrlBtn>
+      <div className="flex items-center gap-1 bg-surface-850/90 border border-surface-700 rounded-lg p-1 pointer-events-auto shadow-lg backdrop-blur-sm">
+        <CtrlBtn title="Fit to screen" onClick={onFit}><Maximize2 className="w-4 h-4" /></CtrlBtn>
+        <CtrlBtn title="Zoom in"       onClick={onZoomIn}><ZoomIn className="w-4 h-4" /></CtrlBtn>
+        <CtrlBtn title="Zoom out"      onClick={onZoomOut}><ZoomOut className="w-4 h-4" /></CtrlBtn>
+        <div className="w-px h-4 bg-surface-700 mx-0.5" />
+        <CtrlBtn title="Reset layout"  onClick={onReset}><RotateCcw className="w-4 h-4" /></CtrlBtn>
+        {hasSelection && (
+          <CtrlBtn title="Center on selected node" onClick={onCenterSelected}><Crosshair className="w-4 h-4" /></CtrlBtn>
+        )}
+        <div className="w-px h-4 bg-surface-700 mx-0.5" />
+        <CtrlBtn
+          title={showMiniMap ? 'Hide minimap' : 'Show minimap'}
+          onClick={onToggleMiniMap}
+        >
+          {showMiniMap ? <Map className="w-4 h-4 text-acid" /> : <Map className="w-4 h-4" />}
+        </CtrlBtn>
       </div>
 
       {/* Middle: hide-done + filter */}
-      <div className="flex items-center gap-1.5 bg-surface-800/90 border border-surface-600 rounded-lg px-2 py-1.5 pointer-events-auto shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-1.5 bg-surface-850/90 border border-surface-700 rounded-lg px-2 py-1.5 pointer-events-auto shadow-lg backdrop-blur-sm">
         <button
           title={hideDone ? 'Show completed' : 'Hide completed'}
           onClick={onToggleHideDone}
           className={clsx(
-            'flex items-center gap-1 text-[10px] font-medium rounded px-1.5 py-0.5 transition-colors',
-            hideDone ? 'text-blue-300 bg-blue-900/30' : 'text-gray-500 hover:text-gray-300',
+            'flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5 transition-colors',
+            hideDone ? 'text-acid bg-acid/10' : 'text-ink-muted hover:text-ink',
           )}
         >
-          {hideDone ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+          {hideDone ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           <span className="hidden sm:inline">Done</span>
         </button>
 
-        <div className="w-px h-4 bg-surface-600" />
+        <div className="w-px h-4 bg-surface-700" />
 
         <div className="flex items-center gap-1">
-          <Filter className="w-3 h-3 text-gray-600" />
+          <Filter className="w-3.5 h-3.5 text-ink-muted" />
           <select
             value={filterState}
             onChange={(e) => onFilterChange(e.target.value)}
-            className="bg-transparent text-[10px] text-gray-400 focus:outline-none cursor-pointer"
+            className="bg-transparent text-[11px] text-ink-secondary focus:outline-none cursor-pointer"
             title="Filter by state"
+            aria-label="Filter nodes by state"
           >
             {FILTER_OPTS.map((opt) => (
-              <option key={opt} value={opt} className="bg-surface-800">
+              <option key={opt} value={opt} className="bg-surface-850">
                 {opt === 'all' ? 'All states' : opt.replace('_', ' ')}
               </option>
             ))}
@@ -386,8 +409,8 @@ function GraphControlsBar({
       </div>
 
       {/* Right: entity count */}
-      <div className="ml-auto bg-surface-800/90 border border-surface-600 rounded-lg px-2 py-1.5 pointer-events-none shadow-lg backdrop-blur-sm">
-        <span className="text-[10px] text-gray-500 font-mono">
+      <div className="ml-auto bg-surface-850/90 border border-surface-700 rounded-lg px-2.5 py-1.5 pointer-events-none shadow-lg backdrop-blur-sm">
+        <span className="text-[11px] text-ink-muted font-mono">
           {visibleCount}/{entityCount} nodes
         </span>
       </div>
@@ -400,7 +423,7 @@ function CtrlBtn({ title, onClick, children }: { title: string; onClick: () => v
     <button
       title={title}
       onClick={onClick}
-      className="p-1 rounded text-gray-500 hover:text-gray-300 hover:bg-surface-600 transition-colors"
+      className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-surface-700 transition-colors"
     >
       {children}
     </button>
@@ -423,18 +446,22 @@ function GraphInner({ scenario, triageResult, criticalPath }: GraphInnerProps) {
   const [selected, setSelected] = useState<{ entity: Entity; triageState?: TriageState } | null>(null);
   const [hideDone, setHideDone]     = useState(false);
   const [filterState, setFilterState] = useState('all');
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [legendOpen, setLegendOpen]   = useState(true);
   // layoutKey: increment to re-trigger position computation
   const [layoutKey, setLayoutKey]   = useState(0);
 
-  // Sync highlighted entity from store (clicked in ImpactPanel)
+  // Sync highlighted entity from store (clicked in ImpactPanel). This is a
+  // deliberate navigation action, so we also bring the node into view once.
   useEffect(() => {
     if (!highlightedEntityId) return;
     const entity = scenario.entities.find((e) => e.id === highlightedEntityId);
     if (entity) {
       const triageState = triageResult?.states.find((s) => s.entity_id === highlightedEntityId)?.state;
       setSelected({ entity, triageState });
+      void rf.fitView({ nodes: [{ id: highlightedEntityId }], padding: 0.6, maxZoom: 1.4, duration: 400 });
     }
-  }, [highlightedEntityId, scenario.entities, triageResult]);
+  }, [highlightedEntityId, scenario.entities, triageResult, rf]);
 
   const stateMap = useMemo<Record<string, TriageState>>(() => {
     if (!triageResult) return {};
@@ -513,19 +540,19 @@ function GraphInner({ scenario, triageResult, criticalPath }: GraphInnerProps) {
           target: dep.dependent,
           animated: isEvidence,
           style: {
-            stroke: isSoft ? '#6b7280' : isCritEdge ? '#f59e0b' : isEvidence ? '#ef4444' : '#334155',
-            strokeWidth: isCritEdge ? 2.5 : isEvidence ? 2 : 1.5,
+            stroke: isSoft ? '#737368' : isCritEdge ? '#FFBF4A' : isEvidence ? '#FF6464' : '#4A4A3C',
+            strokeWidth: isCritEdge ? 2.5 : isEvidence ? 2.5 : 2,
             strokeDasharray: isSoft ? '5 3' : undefined,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: isSoft ? '#6b7280' : isCritEdge ? '#f59e0b' : isEvidence ? '#ef4444' : '#334155',
+            color: isSoft ? '#737368' : isCritEdge ? '#FFBF4A' : isEvidence ? '#FF6464' : '#3E3E32',
             width: 14,
             height: 14,
           },
           label: dep.dependency_type === 'requires_arrival_by' ? 'arrival_by' : undefined,
-          labelStyle: { fill: '#6b7280', fontSize: 9, fontFamily: 'monospace' },
-          labelBgStyle: { fill: '#0f1629' },
+          labelStyle: { fill: '#A3A397', fontSize: 11, fontFamily: 'monospace' },
+          labelBgStyle: { fill: '#0B0B09' },
         };
       }),
     [scenario.dependencies, visibleIds, critPathSet, evidencePathIds],
@@ -535,6 +562,17 @@ function GraphInner({ scenario, triageResult, criticalPath }: GraphInnerProps) {
     ? triageResult?.states.find((s) => s.entity_id === selected.entity.id)
     : undefined;
 
+  // Fit-to-screen caps zoom at 1× so small graphs are never blown up, and
+  // large graphs stay navigable instead of shrinking every node to dots.
+  const fitToScreen = useCallback(
+    () => rf.fitView({ padding: 0.15, maxZoom: 1, duration: 300 }),
+    [rf],
+  );
+  const centerSelected = useCallback(() => {
+    if (!selected) return;
+    void rf.fitView({ nodes: [{ id: selected.entity.id }], padding: 0.5, maxZoom: 1.4, duration: 300 });
+  }, [rf, selected]);
+
   return (
     <div className="relative w-full h-full">
       <GraphControlsBar
@@ -542,10 +580,14 @@ function GraphInner({ scenario, triageResult, criticalPath }: GraphInnerProps) {
         onToggleHideDone={() => setHideDone((v) => !v)}
         filterState={filterState}
         onFilterChange={setFilterState}
-        onFit={() => rf.fitView({ padding: 0.12, duration: 300 })}
+        onFit={fitToScreen}
         onZoomIn={() => rf.zoomIn({ duration: 200 })}
         onZoomOut={() => rf.zoomOut({ duration: 200 })}
-        onReset={() => { setLayoutKey((k) => k + 1); setTimeout(() => rf.fitView({ padding: 0.12, duration: 300 }), 50); }}
+        onReset={() => { setLayoutKey((k) => k + 1); setTimeout(() => rf.fitView({ padding: 0.15, maxZoom: 1, duration: 300 }), 50); }}
+        showMiniMap={showMiniMap}
+        onToggleMiniMap={() => setShowMiniMap((v) => !v)}
+        hasSelection={selected != null}
+        onCenterSelected={centerSelected}
         entityCount={scenario.entities.length}
         visibleCount={visibleEntities.length}
       />
@@ -555,62 +597,81 @@ function GraphInner({ scenario, triageResult, criticalPath }: GraphInnerProps) {
         edges={edges}
         nodeTypes={NODE_TYPES}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.25}
+        fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
+        minZoom={0.2}
         maxZoom={2.5}
         proOptions={{ hideAttribution: true }}
         nodesDraggable
         nodesConnectable={false}
         elementsSelectable={false}
       >
-        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#1a2440" />
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#303027" />
         <Controls showInteractive={false} className="hidden" />
-        <MiniMap
-          nodeColor={(n) => {
-            const s = (n.data as NodeData)?.triageState ?? (n.data as NodeData)?.entity?.status;
-            const c: Record<string, string> = {
-              blocked: '#ef4444', external: '#f97316', at_risk: '#f59e0b',
-              healthy: '#10b981', done: '#374151', pending: '#7c3aed', in_progress: '#2563eb',
-            };
-            return c[s] ?? '#273660';
-          }}
-          maskColor="#0f162980"
-          style={{ bottom: 56, right: 8 }}
-        />
+        {showMiniMap && (
+          <MiniMap
+            nodeColor={(n) => {
+              const s = (n.data as NodeData)?.triageState ?? (n.data as NodeData)?.entity?.status;
+              const c: Record<string, string> = {
+                blocked: '#FF6464', external: '#75BFFF', at_risk: '#FFBF4A',
+                healthy: '#75E6A0', done: '#737368', pending: '#A3A397', in_progress: '#56A8E0',
+              };
+              return c[s] ?? '#3E3E32';
+            }}
+            maskColor="rgba(11, 11, 9, 0.75)"
+            maskStrokeColor="#D9FF00"
+            maskStrokeWidth={2}
+            nodeStrokeWidth={0}
+            zoomable
+            pannable
+            style={{ bottom: 16, right: 12, width: 168, height: 112 }}
+            aria-label="Graph minimap"
+          />
+        )}
 
-        {/* Legend */}
+        {/* Legend — collapsible, bottom-left, out of the node area */}
         <div className="absolute bottom-4 left-3 z-10">
-          <div className="card p-3 space-y-1.5 text-[10px] bg-surface-800/95 border-surface-600">
-            <p className="text-gray-600 uppercase tracking-widest mb-2">Legend</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-              {[
-                { state: 'blocked',     label: 'Blocked' },
-                { state: 'external',    label: 'External' },
-                { state: 'at_risk',     label: 'At Risk' },
-                { state: 'healthy',     label: 'Healthy' },
-                { state: 'done',        label: 'Done' },
-                { state: 'in_progress', label: 'In Progress' },
-                { state: 'pending',     label: 'Pending' },
-              ].map(({ state }) => (
-                <div key={state} className="flex items-center gap-1.5">
-                  <StatusBadge status={state} showDot />
+          <div className="card p-3 space-y-1.5 text-[11px] bg-surface-850/95 backdrop-blur-sm">
+            <button
+              className="flex items-center gap-1.5 text-ink-muted uppercase tracking-widest mb-1 hover:text-ink transition-colors w-full"
+              onClick={() => setLegendOpen((v) => !v)}
+              aria-expanded={legendOpen}
+            >
+              Legend
+              {legendOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+            </button>
+            {legendOpen && (
+              <>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  {[
+                    { state: 'blocked',     label: 'Blocked' },
+                    { state: 'external',    label: 'External' },
+                    { state: 'at_risk',     label: 'At Risk' },
+                    { state: 'healthy',     label: 'Healthy' },
+                    { state: 'done',        label: 'Done' },
+                    { state: 'in_progress', label: 'In Progress' },
+                    { state: 'pending',     label: 'Pending' },
+                  ].map(({ state }) => (
+                    <div key={state} className="flex items-center gap-1.5">
+                      <StatusBadge status={state} showDot />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="pt-1.5 border-t border-surface-700 space-y-1">
-              <div className="flex items-center gap-1.5">
-                <div className="w-6 h-0.5 bg-amber-500 rounded-full" />
-                <span className="text-gray-500">Critical path</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-6 h-px border-t-2 border-dashed border-gray-600" />
-                <span className="text-gray-500">benefits_from (soft)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-6 h-0.5 bg-red-500 rounded-full" />
-                <span className="text-gray-500">Evidence path</span>
-              </div>
-            </div>
+                <div className="pt-1.5 border-t border-surface-700 space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-0.5 bg-warn rounded-full" />
+                    <span className="text-ink-muted">Critical path</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-px border-t-2 border-dashed border-ink-muted" />
+                    <span className="text-ink-muted">benefits_from (soft)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-0.5 bg-fail rounded-full" />
+                    <span className="text-ink-muted">Evidence path</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </ReactFlow>

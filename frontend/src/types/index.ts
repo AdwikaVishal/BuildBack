@@ -262,6 +262,25 @@ export interface CriticalPathInfo {
   path: string[];
   length: number;
   unit: string;
+  /** Present on triage results (§9) — the actual dependency chain */
+  edges?: EvidenceEdge[];
+  assumptions?: string[];
+  limitations?: string[];
+}
+
+/** §9 critical_path_change — baseline vs post-disruption critical path */
+export interface CriticalPathChange {
+  baseline_path: string[];
+  baseline_length: number;
+  unit: string;
+  disrupted_entity_id: string;
+  impacted_entity_ids: string[];
+  disrupted_path: string[];
+  disrupted_length: number;
+  baseline_intersects_disruption: boolean;
+  disrupted_entity_is_external: boolean;
+  assumptions: string[];
+  limitations: string[];
 }
 
 export interface TriageResult {
@@ -274,7 +293,7 @@ export interface TriageResult {
   summary: TriageSummary;
   parallel_work: ParallelWork[];
   critical_path: CriticalPathInfo;
-  critical_path_changes: string[];
+  critical_path_change: CriticalPathChange;
   assumptions: string[];
   limitations: string[];
 }
@@ -448,6 +467,110 @@ export interface ChangeItem {
   constraint_parameters?: { required_buffer_minutes?: number };
 }
 
+// ── §14.1  Recovery schedule / generate_recovery_schedule ────────────────────
+
+export type ScheduleGroup = 'completed' | 'ready_now' | 'waiting' | 'blocked';
+export type ScheduleOutcome = 'scheduled' | 'insufficient_duration_data' | 'infeasible';
+
+export interface ScheduleEntry {
+  entity_id: string;
+  name: string | null;
+  status: EntityStatus;
+  triage_state: TriageState | null;
+  group: ScheduleGroup;
+  layer: number | null;
+  duration: number | null;
+  earliest_start: number | null;
+  earliest_finish: number | null;
+  waiting_time: number | null;
+  hard_prerequisites: string[];
+  soft_prerequisites: string[];
+  on_critical_path: boolean;
+  reason: string;
+}
+
+export interface ParallelGroup {
+  layer: number;
+  entity_ids: string[];
+}
+
+export interface ScheduleCompletion {
+  duration: number | null;
+  unit: string | null;
+  covers_all_tasks: boolean;
+  excluded_tasks: string[];
+  explanation: string;
+}
+
+export interface BaselineScheduleBlock {
+  unit: string | null;
+  schedule: ScheduleEntry[] | null;
+  groups: Record<ScheduleGroup, string[]> | null;
+  execution_order: string[] | null;
+  parallel_groups: ParallelGroup[] | null;
+  critical_path: CriticalPathInfo | null;
+  completion: ScheduleCompletion | null;
+  feasible?: boolean;
+  violations?: Violation[];
+}
+
+export interface ScheduleComparison {
+  comparable: boolean;
+  incomparable_reason: string | null;
+  baseline_unit: string | null;
+  proposed_unit: string | null;
+  baseline_execution_order: string[];
+  proposed_execution_order: string[];
+  execution_order_changed: boolean;
+  baseline_critical_path: string[];
+  proposed_critical_path: string[];
+  critical_path_changed: boolean;
+  completion_delta: number | null;
+  newly_blocked: string[];
+  newly_unblocked: string[];
+  baseline_excluded_tasks: string[];
+  proposed_excluded_tasks: string[];
+  excluded_tasks_changed: boolean;
+  parallelism: { baseline_layer_count: number; proposed_layer_count: number } | null;
+  task_offset_changes: Array<{
+    entity_id: string;
+    baseline_group: ScheduleGroup;
+    proposed_group: ScheduleGroup;
+    baseline_start: number | null;
+    proposed_start: number | null;
+    delta_start: number | null;
+    baseline_finish: number | null;
+    proposed_finish: number | null;
+    delta_finish: number | null;
+  }>;
+}
+
+export interface ScheduleResult {
+  scenario_id: string;
+  plan_id: string;
+  plan_version: number;
+  simulated: true;
+  disrupted_entity_id: string | null;
+  option_id: string | null;
+  changes: ChangeItem[];
+  feasible: boolean;
+  outcome: ScheduleOutcome;
+  error: { code: string; message: string } | null;
+  unit: string | null;
+  schedule: ScheduleEntry[] | null;
+  groups: Record<ScheduleGroup, string[]> | null;
+  execution_order: string[] | null;
+  parallel_groups: ParallelGroup[] | null;
+  critical_path: CriticalPathInfo | null;
+  completion: ScheduleCompletion | null;
+  baseline: BaselineScheduleBlock | null;
+  comparison: ScheduleComparison | null;
+  violations: Violation[];
+  missing_data: string[];
+  assumptions: string[];
+  limitations: string[];
+}
+
 // ── MCP client layer ──────────────────────────────────────────────────────────
 
 export interface MCPToolCall {
@@ -470,6 +593,61 @@ export interface MCPConnectionStatus {
   tools?: string[];
   lastCheckedAt?: number;
   error?: string;
+  /** Assistant interpretation provider reported by the adapter (real state). */
+  assistantProvider?: string;
+}
+
+// ── MCP tool discovery (live from the server, never hardcoded) ───────────────
+
+export interface MCPToolInfo {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+// ── Assistant (Person 4) ─────────────────────────────────────────────────────
+
+export interface ChatStep {
+  tool: string;
+  arguments: Record<string, unknown>;
+  status: 'ok' | 'error' | 'skipped';
+  duration_ms?: number | null;
+  result?: unknown;
+  error?: string | null;
+  summary?: string | null;
+}
+
+export interface ChatResponse {
+  reply: string;
+  intent: string;
+  provider: string;
+  provider_notes: string[];
+  steps: ChatStep[];
+  needs_clarification: boolean;
+  scenario_id: string | null;
+  tool_calls_made: number;
+  truncated: boolean;
+  duration_ms: number;
+}
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  text: string;
+  ts: number;
+  /** Assistant-only metadata */
+  intent?: string;
+  provider?: string;
+  providerNotes?: string[];
+  steps?: ChatStep[];
+  needsClarification?: boolean;
+  /** True when the backend truncated tool results shown in this reply */
+  truncated?: boolean;
+  error?: boolean;
+  /** True while the request is in flight */
+  pending?: boolean;
 }
 
 // ── UI state ──────────────────────────────────────────────────────────────────
@@ -481,11 +659,14 @@ export type ScenarioId =
   | 'travel';
 
 export type DashboardView =
+  | 'overview'
   | 'graph'
+  | 'disruptions'
   | 'impact'
   | 'recovery'
   | 'timeline'
-  | 'approval'
+  | 'review'
+  | 'activity'
   | 'mcp';
 
 export interface DisruptionState {

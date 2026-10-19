@@ -1,0 +1,4770 @@
+{
+  "project": "RippleBack",
+  "repository": "/Users/shantanu/BuildBack",
+  "coordination_version": 2,
+  "schema_note": "v2: supersedes the v1 coordination schema. Preserved: agents, decisions, change_log, verification, unresolved_issues, acceptance_criteria. Added: audit, summary_metrics, categories, tasks (stable IDs), known_limitations, blockers, next_recommended_actions, last_verified_test_results.",
+  "last_updated": "2026-10-19T19:08:40+05:30",
+  "current_phase": "verified_demo_ready__visual_verification_and_prd_blocked",
+  "global_status": "demo_ready_with_open_blockers",
+  "audit": {
+    "id": "master-audit-2026-10-19",
+    "timestamp": "2026-10-19T19:08:40+05:30",
+    "scope": "Master project completion audit (backend, MCP, assistant, frontend, UI/UX, testing, PRD, demo).",
+    "evidence_hierarchy": [
+      "source code and contracts",
+      "automated tests re-run in this audit",
+      "live integration/API tests",
+      "documentation",
+      "previous progress file",
+      "prior claims"
+    ],
+    "phases": {
+      "phase1_inspect": "complete — repo, README, data contract, progress file (v1), git tree read",
+      "phase2_checklist": "complete — 122 tasks with stable IDs and acceptance criteria",
+      "phase3_implementation_review": "complete for backend/MCP/assistant/frontend source; UI visual review blocked",
+      "phase4_verify": "complete — all test suites, build, tsc, lint, live workflow, error paths, offline path",
+      "phase5_ui_inspect": "blocked — no desktop browser connected",
+      "phase6_requirements": "blocked — PRD absent from repository",
+      "phase7_calculate": "complete — metrics computed from checklist",
+      "phase8_progress": "complete — project_progress.json updated (history preserved)",
+      "phase9_report": "complete — final report produced in session"
+    },
+    "files_modified_by_audit": [
+      "project_progress.json"
+    ],
+    "commits_or_pushes_made": "none"
+  },
+  "summary_metrics": {
+    "total": 122,
+    "by_status": {
+      "complete": 75,
+      "partial": 4,
+      "in_progress": 0,
+      "not_started": 3,
+      "blocked": 9,
+      "needs_verification": 27,
+      "not_applicable": 4
+    },
+    "implementation_in_scope": 114,
+    "implementation_complete": 105,
+    "implementation_partial": 4,
+    "implementation_percent": 92.1,
+    "implementation_weighted_percent": 93.9,
+    "verification_requiring": 114,
+    "verification_verified": 79,
+    "verification_percent": 69.3
+  },
+  "formulas": {
+    "implementation_completion": "count(implementation == 'complete') / count(implementation != 'not_applicable') * 100",
+    "implementation_completion_weighted": "count(complete) + 0.5 * count(partial), divided by count(implementation != 'not_applicable') * 100",
+    "verification_completion": "count(verification == 'verified') / count(verification != 'not_applicable') * 100",
+    "status_percentages": "raw counts by status are authoritative; percentages exclude not_applicable from denominators",
+    "excluded_from_denominators": "not_applicable tasks (PRD-03..06 documented out of scope; verification-only tasks TEST-11/12/13, UI-15, REPO-01 where implementation is not applicable)"
+  },
+  "categories": [
+    {
+      "total": 19,
+      "by_status": {
+        "complete": 19,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 0,
+        "needs_verification": 0,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 19,
+      "implementation_complete": 19,
+      "implementation_partial": 0,
+      "implementation_percent": 100.0,
+      "implementation_weighted_percent": 100.0,
+      "verification_requiring": 19,
+      "verification_verified": 19,
+      "verification_percent": 100.0,
+      "id": "backend",
+      "name": "Backend and core engines"
+    },
+    {
+      "total": 14,
+      "by_status": {
+        "complete": 14,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 0,
+        "needs_verification": 0,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 14,
+      "implementation_complete": 14,
+      "implementation_partial": 0,
+      "implementation_percent": 100.0,
+      "implementation_weighted_percent": 100.0,
+      "verification_requiring": 14,
+      "verification_verified": 14,
+      "verification_percent": 100.0,
+      "id": "mcp",
+      "name": "MCP server and client"
+    },
+    {
+      "total": 13,
+      "by_status": {
+        "complete": 12,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 0,
+        "needs_verification": 1,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 13,
+      "implementation_complete": 13,
+      "implementation_partial": 0,
+      "implementation_percent": 100.0,
+      "implementation_weighted_percent": 100.0,
+      "verification_requiring": 13,
+      "verification_verified": 12,
+      "verification_percent": 92.3,
+      "id": "assistant",
+      "name": "AI assistant"
+    },
+    {
+      "total": 18,
+      "by_status": {
+        "complete": 4,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 1,
+        "blocked": 0,
+        "needs_verification": 13,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 18,
+      "implementation_complete": 17,
+      "implementation_partial": 0,
+      "implementation_percent": 94.4,
+      "implementation_weighted_percent": 94.4,
+      "verification_requiring": 17,
+      "verification_verified": 4,
+      "verification_percent": 23.5,
+      "id": "frontend",
+      "name": "Frontend functionality"
+    },
+    {
+      "total": 15,
+      "by_status": {
+        "complete": 1,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 1,
+        "blocked": 3,
+        "needs_verification": 10,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 15,
+      "implementation_complete": 14,
+      "implementation_partial": 0,
+      "implementation_percent": 93.3,
+      "implementation_weighted_percent": 93.3,
+      "verification_requiring": 14,
+      "verification_verified": 1,
+      "verification_percent": 7.1,
+      "id": "ui_ux",
+      "name": "UI/UX and observability"
+    },
+    {
+      "total": 13,
+      "by_status": {
+        "complete": 10,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 1,
+        "blocked": 2,
+        "needs_verification": 0,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 11,
+      "implementation_complete": 10,
+      "implementation_partial": 0,
+      "implementation_percent": 90.9,
+      "implementation_weighted_percent": 90.9,
+      "verification_requiring": 12,
+      "verification_verified": 10,
+      "verification_percent": 83.3,
+      "id": "testing",
+      "name": "Testing and quality"
+    },
+    {
+      "total": 7,
+      "by_status": {
+        "complete": 0,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 3,
+        "needs_verification": 0,
+        "not_applicable": 4
+      },
+      "implementation_in_scope": 1,
+      "implementation_complete": 0,
+      "implementation_partial": 0,
+      "implementation_percent": 0.0,
+      "implementation_weighted_percent": 0.0,
+      "verification_requiring": 3,
+      "verification_verified": 0,
+      "verification_percent": 0.0,
+      "id": "prd",
+      "name": "PRD compliance and product gaps"
+    },
+    {
+      "total": 17,
+      "by_status": {
+        "complete": 14,
+        "partial": 1,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 0,
+        "needs_verification": 2,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 17,
+      "implementation_complete": 16,
+      "implementation_partial": 1,
+      "implementation_percent": 94.1,
+      "implementation_weighted_percent": 97.1,
+      "verification_requiring": 17,
+      "verification_verified": 15,
+      "verification_percent": 88.2,
+      "id": "demo",
+      "name": "Demo readiness"
+    },
+    {
+      "total": 5,
+      "by_status": {
+        "complete": 1,
+        "partial": 3,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 0,
+        "needs_verification": 1,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 5,
+      "implementation_complete": 2,
+      "implementation_partial": 3,
+      "implementation_percent": 40.0,
+      "implementation_weighted_percent": 70.0,
+      "verification_requiring": 5,
+      "verification_verified": 4,
+      "verification_percent": 80.0,
+      "id": "docs",
+      "name": "Documentation accuracy"
+    },
+    {
+      "total": 1,
+      "by_status": {
+        "complete": 0,
+        "partial": 0,
+        "in_progress": 0,
+        "not_started": 0,
+        "blocked": 1,
+        "needs_verification": 0,
+        "not_applicable": 0
+      },
+      "implementation_in_scope": 1,
+      "implementation_complete": 0,
+      "implementation_partial": 0,
+      "implementation_percent": 0.0,
+      "implementation_weighted_percent": 0.0,
+      "verification_requiring": 0,
+      "verification_verified": 0,
+      "verification_percent": 0.0,
+      "id": "repo",
+      "name": "Repository hygiene"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "BE-01",
+      "name": "Project state retrieval",
+      "description": "get_plan_state returns committed plan state (id, version, status, entities, dependencies, constraints) as a deep copy; unknown ids raise a structured error.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Returns scenario_id/plan_id/version/status/entities/dependencies/constraints/disruptions=[]",
+        "Unknown/empty/malformed scenario_id -> structured error listing available ids",
+        "No mutation of the seeded plan (deep copy)"
+      ],
+      "verification_method": "Live MCP tool call through the Vite proxy + unit/integration tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "POST /api/mcp/tool get_plan_state('project-full') -> version=1 status=healthy disruptions=[]; get_plan_state('no-such-scenario') -> isError=true, message lists available scenario ids",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/server.py:get_plan_state",
+          "detail": "returns dict, raises ToolError on ScenarioError"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-02",
+      "name": "Scenario fixtures and validation",
+      "description": "Four seeded fixtures (demo-release-plan, demo-release-plan-staffed, project-full, travel) with validate_scenario (refs, durations, resources, cycles).",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "All four scenario ids resolvable live",
+        "Invalid fixtures rejected with coded errors",
+        "Synthetic data labeled as synthetic"
+      ],
+      "verification_method": "Fixture tests + live discovery of available ids in error message",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Error message from unknown scenario lists exactly ['demo-release-plan','demo-release-plan-staffed','project-full','travel']",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/scenarios.py",
+          "detail": "538 lines: fixture defs + validate_scenario; project-full declares resources"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-03",
+      "name": "Typed dependency graph construction",
+      "description": "rippleback.graph builds a NetworkX DiGraph with typed edges (requires_completion / requires_arrival_by / benefits_from), invalid-reference and cycle detection with stable error codes.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Typed edges carried on graph",
+        "GraphError codes ENTITY_NOT_FOUND / INVALID_DEPENDENCY / INVALID_DEPENDENCY_TYPE / CYCLIC_DEPENDENCY",
+        "graph_errors() returns coded dicts without raising"
+      ],
+      "verification_method": "Graph unit tests + cycle forecast observed live",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "src/rippleback/graph.py",
+          "detail": "310 lines: build_graph, edge typing, validation, graph_errors"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_graph.py tests/test_critical_path.py -q",
+          "exit_code": 0,
+          "result": "25 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "recalculate_delivery_forecast with a cycle-producing change -> feasible=false, code=CYCLIC_DEPENDENCY",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-04",
+      "name": "Critical-path analysis",
+      "description": "Longest hard-dependency chain, weighted by entity duration when present else steps; critical_path_changes compares pre/post disruption paths. Relative ranking, never a date.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Returns path/length/unit/edges",
+        "No calendar dates in output",
+        "Used by scheduler/comparison without duplication"
+      ],
+      "verification_method": "Unit tests + live schedule report containing critical_path",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_graph.py tests/test_critical_path.py -q",
+          "exit_code": 0,
+          "result": "25 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule('project-full') -> critical_path=[payment-api, backend-integration, integration-testing, release-validation, production-release], length=9.0",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/critical_path.py",
+          "detail": "215 lines longest-path engine"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-05",
+      "name": "Disruption simulation (impact analysis)",
+      "description": "simulate_disruption: hypothetical direct/transitive/unaffected impact with evidence paths; never mutates committed plan.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "directly_affected/transitively_affected/unaffected with evidence_path each",
+        "plan_version unchanged, simulated=true",
+        "Invalid entity/reason/severity -> structured error"
+      ],
+      "verification_method": "Live tool call + impact unit tests + read-only recheck",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "simulate_disruption project-full/payment-api -> direct=[backend-integration], trans=[integration-testing, release-validation, production-release, unit-testing], unaffected=4, plan_version=1, simulated=true",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "get_plan_state afterwards -> version=1, disruptions=[]",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-06",
+      "name": "Blocked-task analysis (blocker triage)",
+      "description": "analyze_blocked_tasks: one state per entity (blocked/external/at_risk/healthy/done), reasons, evidence paths/edges, parallel work, critical path before/after, time-aware delay propagation, recovery view via recompute_with_changes.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exactly one state per entity with reason + evidence",
+        "summary counts match states",
+        "parallel_work = healthy + at_risk",
+        "delay events absorb via slack_minutes",
+        "external flagged from metadata.external"
+      ],
+      "verification_method": "Live tool call + triage unit tests + scheduler reuse",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "analyze_blocked_tasks project-full/payment-api (service_outage) -> summary {done:1, blocked:5, external:0, at_risk:2, healthy:2}, parallel_work=[vendor-delivery, frontend-integration, unit-testing, release-notes] (matches DEMO_RUNBOOK §3)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_triage.py -q",
+          "exit_code": 0,
+          "result": "22 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/triage.py",
+          "detail": "523 lines: state precedence, delay propagation, apply_changes, recompute_with_changes"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-07",
+      "name": "Alternative dependency discovery",
+      "description": "find_alternative_dependencies: one bypass option per broken hard edge with stable drop-dependency ids, unblocks computed on the residual graph, assumptions and limitations.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Options derived from live graph, not hardcoded",
+        "unblocks computed on residual graph",
+        "Valid entity with no dependents -> options: []"
+      ],
+      "verification_method": "Live tool call + recovery unit tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "find_alternative_dependencies project-full/payment-api -> options=[drop-dependency:backend-integration->payment-api]",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/recovery.py",
+          "detail": "504 lines: alternatives + substitute candidates"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-08",
+      "name": "Substitute option discovery",
+      "description": "find_substitute_options proposes candidates only from explicit entity metadata.substitutes; outcomes substitutes_proposed / no_feasible_substitute / no_substitute_candidates with missing_data.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Nothing inferred from names/status/graph",
+        "No shipped fixture declares candidates -> honest no_substitute_candidates with missing_data",
+        "substitutes_proposed path covered by tests with a synthesized scenario"
+      ],
+      "verification_method": "Live tool call + dedicated substitute tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "find_substitute_options project-full/payment-api -> outcome=no_substitute_candidates, missing_data explains that entity declares no metadata.substitutes",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_substitute_recovery.py",
+          "detail": "455 lines; line 114 asserts substitutes_proposed on a synthesized scenario"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-09",
+      "name": "Recovery option evaluation",
+      "description": "evaluate_recovery_plan: structural verdict (structurally_valid/rejected) with findings, residual-graph unblocks/still_blocked, plan-version check; business readiness explicitly not assessed.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Verdict + findings codes plan_version_match/dependency_edge_exists/business_readiness_not_assessed",
+        "Malformed option id -> structured error; well-formed failing proposal -> rejected report (not an error)",
+        "Read-only"
+      ],
+      "verification_method": "Live tool call + evaluation unit tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "evaluate_recovery_plan project-full / drop-dependency:backend-integration->payment-api / v1 -> verdict=structurally_valid, findings=[plan_version_match, dependency_edge_exists, business_readiness_not_assessed], unblocks computed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/evaluation.py",
+          "detail": "244 lines incl. parse_option_id"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-10",
+      "name": "Recovery option comparison and scoring",
+      "description": "compare_recovery_options: feasibility gate via validate_hard_constraints, delay-only default scoring, ranking, excluded options with violations, recommendation or no_feasible_recovery.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "outcome=ranked with baseline/ranked/excluded/feasible_count/scorable_count/recommendation",
+        "Infeasible options excluded and never recommended",
+        "No fabricated cost/risk scores"
+      ],
+      "verification_method": "Live tool call + scoring/comparison unit tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "compare_recovery_options project-full with 1 option -> outcome=ranked, recommendation=drop-dependency:backend-integration->payment-api, keys include baseline/ranked/excluded/weights",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/scoring.py",
+          "detail": "556 lines; src/rippleback/comparison.py 227 lines"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-11",
+      "name": "Workload rebalancing",
+      "description": "rebalance_workload: per-resource capacity vs unfinished effort, greedy suggestions with assumptions/limitations, unresolved list, insufficient_data for unstaffed scenarios; work_units only, no dates.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Staffed scenario -> outcome=ok with resources + suggestions",
+        "Unstaffed scenario -> outcome=insufficient_data (not an empty success)",
+        "No delivery dates ever produced"
+      ],
+      "verification_method": "Live tool calls on staffed and unstaffed fixtures + workload tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "rebalance_workload demo-release-plan-staffed/v1 -> outcome=ok, unit=work_units, suggestions=1",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "rebalance_workload demo-release-plan/v1 -> outcome=insufficient_data",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/workload.py",
+          "detail": "253 lines"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-12",
+      "name": "Constraint validation",
+      "description": "validate_hard_constraints: graph rules first (codes) then committed constraints in fixture order; unsupported constraint types reported as violations, never skipped.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "changes=None validates committed baseline",
+        "feasible + machine-readable violations",
+        "Unsupported types -> violations"
+      ],
+      "verification_method": "Live tool call + constraint tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "validate_hard_constraints project-full (baseline) -> feasible=true, violations=[]",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/constraints.py",
+          "detail": "289 lines"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-13",
+      "name": "Delivery forecasting",
+      "description": "recalculate_delivery_forecast: baseline vs post-change critical path in steps/duration_units; infeasible change sets return feasible=false with stable graph code and null forecast fields.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Feasible forecast returns unit + delay_delta (never a date)",
+        "Cycle/dangling/self-dependency -> feasible=false with code, null forecasts",
+        "substitute: option ids rejected with guidance to pass explicit changes"
+      ],
+      "verification_method": "Live tool calls (feasible + infeasible) + forecast tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "forecast drop-dependency:backend-integration->payment-api on project-full -> feasible=true, unit=duration_units, delay_delta=-1.0",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "forecast with cycle change -> feasible=false, code=CYCLIC_DEPENDENCY",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/forecast.py",
+          "detail": "281 lines"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-14",
+      "name": "Recovery scheduling",
+      "description": "generate_recovery_schedule: relative-duration schedule with readiness groups, parallel layers, execution order, start/finish/waiting times when durations exist, baseline + comparison when changes given, infeasible gating.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "unit=duration_units, t=0 = moment of analysis, never calendar dates",
+        "Missing durations -> ordering-only report with outcome=insufficient_duration_data and missing_data",
+        "Infeasible change -> feasible=false, outcome=infeasible, null schedule/comparison",
+        "Committed plan never modified"
+      ],
+      "verification_method": "Live tool calls (committed baseline, recovery with changes, cycle infeasible) + 18 scheduler tests + date-string scan of output",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule project-full (no changes) -> outcome=scheduled, groups {completed:1, ready_now:9, waiting:0, blocked:0}, 5 layers, order=9, completion=9.0 duration_units covers_all_tasks=true, violations=[], missing_data=[] (matches DEMO_RUNBOOK §5)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "recovery with remove backend-integration->vendor-delivery + disrupted_entity_id=vendor-delivery -> feasible=true, groups {ready_now:8, blocked:1}, comparison comparable, completion_delta=7.0, covers_all_tasks=false",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "cycle change -> feasible=false, outcome=infeasible, schedule=null, code=CYCLIC_DEPENDENCY",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/scheduler.py",
+          "detail": "1045 lines, pure engine, reuses graph/triage/constraints/critical_path"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-15",
+      "name": "Readiness groups and task ordering",
+      "description": "Groups completed/ready_now/waiting/blocked; deterministic Kahn ordering with lexicographic tie-breaking; per-task reasons and layer assignment.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Every entity appears in exactly one group",
+        "Deterministic order (test_determinism)",
+        "done tasks complete at t=0, never restarted"
+      ],
+      "verification_method": "Live group counts + scheduler tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Committed-baseline schedule groups {completed:1, ready_now:9, waiting:0, blocked:0}; recovery schedule {completed:1, ready_now:8, waiting:0, blocked:1}",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-16",
+      "name": "Infeasibility handling",
+      "description": "Cycles, dangling references, and hard-constraint violations are reported in-band as feasible=false with stable violation codes; invalid proposals are never ordered or recommended.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Forecast, constraints, comparison, and schedule all report infeasibility in-band",
+        "No fabricated schedule for infeasible proposals"
+      ],
+      "verification_method": "Live cycle tests on forecast and schedule + infeasible-not-recommended test",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "forecast cycle -> feasible=false CYCLIC_DEPENDENCY; schedule cycle -> feasible=false outcome=infeasible schedule=null",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "validate_hard_constraints used as gate inside compare and schedule",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-17",
+      "name": "Missing-data handling",
+      "description": "Missing durations, staffing, substitutes, and unknown references are surfaced explicitly (missing_data / insufficient_data / no_substitute_candidates) instead of silent empties or invented values.",
+      "category": "backend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Durations never invented (ordering-only fallback)",
+        "Unstaffed rebalance -> insufficient_data",
+        "No substitute declaration -> no_substitute_candidates + missing_data"
+      ],
+      "verification_method": "Live tool calls for each missing-data path + scheduler/workload/substitute tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "rebalance_workload on unstaffed fixture -> insufficient_data; find_substitute_options -> no_substitute_candidates with missing_data text",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-18",
+      "name": "Baseline-versus-recovery comparison",
+      "description": "Schedule comparison reports orders, critical paths, completion delta only when comparable, excluded-task sets, per-task offsets, newly blocked/unblocked, parallelism.",
+      "category": "backend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "comparable flag with incomparable_reason",
+        "completion_delta only when same unit + durations",
+        "Excluded work sets reported alongside delta"
+      ],
+      "verification_method": "Live recovery schedule comparison + comparison tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Recovery schedule comparison -> comparable=true, baseline_completion=2.0 (per README example semantics), proposed=9.0, completion_delta=7.0, newly_unblocked present",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "BE-19",
+      "name": "Read-only guarantee (no writes to committed plan)",
+      "description": "No tool mutates entities, dependencies, statuses, version, or disruptions; no commit/apply tool exists; simulations are always labeled hypothetical.",
+      "category": "backend",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Plan version/status/disruptions unchanged before vs after a full analysis workflow",
+        "Tests assert non-mutation for engines, tools, assistant, and adapter",
+        "No write tool registered"
+      ],
+      "verification_method": "Live before/after state comparison + dedicated non-mutation tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "get_plan_state('project-full') before AND after triage+alternatives+compare+schedule workflow -> version=1, status=healthy, disruptions=[] (unchanged)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Adapter health tool list contains exactly 11 tools, none of which write (server.py docstring: 'No writes yet')",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-01",
+      "name": "MCP server initialization and Streamable HTTP transport",
+      "description": "MCPServer named RippleBack on http://127.0.0.1:8000/mcp via official SDK v2; binds localhost only.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Server initializes and answers MCP handshake",
+        "Endpoint /mcp on port 8000 (RIPPLEBACK_HOST/PORT overrides)",
+        "No credentials; localhost binding"
+      ],
+      "verification_method": "Live connection observed through the adapter's health state + integration tests spawning a real server",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/server.py",
+          "detail": "MCPServer(name='RippleBack', version='0.1.0'); DEFAULT_HOST/PORT; main() entry"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+          "exit_code": 0,
+          "result": "41 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-02",
+      "name": "Tool registration",
+      "description": "All read-only analysis tools registered with names, descriptions, and JSON input schemas.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Registered tool count discovered live (not hardcoded in audit)",
+        "Every tool has description + input_schema"
+      ],
+      "verification_method": "Live tools/list via adapter",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Discovered tool names: get_plan_state, simulate_disruption, find_alternative_dependencies, evaluate_recovery_plan, rebalance_workload, analyze_blocked_tasks, recalculate_delivery_forecast, validate_hard_constraints, compare_recovery_options, find_substitute_options, generate_recovery_schedule (11)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+          "exit_code": 0,
+          "result": "41 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-03",
+      "name": "Dynamic tool discovery",
+      "description": "Client list_tools() refreshes from tools/list and caches name/description/schema; frontend listTools() and orchestrator consume the live list — nothing hardcoded.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "New tool appears without frontend/assistant change (scheduling tool test)",
+        "Frontend MCP Inspector count = live tools.length",
+        "Assistant help lists live tools"
+      ],
+      "verification_method": "Dedicated dynamic-discovery tests + live count + frontend source inspection",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "GET /api/mcp/tools -> count=11 with input_schema per tool; MCPInspector renders tools.length from this list",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/MCPInspector.tsx",
+          "detail": "count rendered from live tools.length; BASELINE_TOOLS only used to warn about missing expected tools"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "test_tool_discovery_is_live_and_dynamic, test_tool_discovery_reflects_new_tools, test_scheduling_tool_discovered_only_when_registered"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_schedule_tool_is_discovered_dynamically_when_registered, test_help_lists_live_discovered_tools"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-04",
+      "name": "Input schema validation",
+      "description": "Client validates arguments against the discovered input schema (required fields, unknown fields when additionalProperties=false, scalar types) before dispatch; server remains authority.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Missing required argument -> clear error before MCP dispatch",
+        "Type mismatches rejected",
+        "Validation runs against live schema, not a static copy"
+      ],
+      "verification_method": "Live invalid-argument call + client validation tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "POST /api/mcp/tool {tool:get_plan_state, arguments:{}} -> isError=true 'invalid arguments: missing required argument scenario_id'",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/client.py:350-418",
+          "detail": "validate_arguments() reads discovered input_schema"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-05",
+      "name": "Tool invocation and structured results",
+      "description": "call_tool performs a real tools/call and parses the structured JSON result; adapter wraps as {result, isError:false}.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Structured JSON result returned to caller",
+        "One initialized session reused across calls"
+      ],
+      "verification_method": "Live calls for every tool family + adapter/client tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "All 11 tools invoked live through POST /api/mcp/tool (plan state, simulation, triage, alternatives, evaluation, compare, forecast, constraints, substitutes, workload, schedule) — each returned structured JSON",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+          "exit_code": 0,
+          "result": "41 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-06",
+      "name": "Error propagation",
+      "description": "MCP isError results raise MCPToolFailedError and are surfaced as {error, isError:true} — never converted into a successful-looking response; engine errors become ToolError messages.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Tool failure returns isError=true with message",
+        "Unknown scenario -> structured tool error, not a crash",
+        "Frontend throws MCPToolError on isError responses"
+      ],
+      "verification_method": "Live error calls + client/adapter/server error tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "unknown scenario -> {error:'Error executing tool get_plan_state: unknown scenario_id ...', isError:true}",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/adapter.py:call_tool",
+          "detail": "MCPToolFailedError -> 200 {error, isError:true}; MCPConnectionError -> 503; MCPToolNotFoundError -> 404"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts",
+          "detail": "callTool throws MCPToolError when body.isError/error set; failed calls logged in call log"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-07",
+      "name": "Timeouts",
+      "description": "Client default 30s (configurable) wraps initialize and tools/call; frontend fetches use AbortSignal timeouts (30s tool, 10s tools list, 5s health).",
+      "category": "mcp",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Client timeout enforced with asyncio.wait_for",
+        "Frontend aborts hung requests"
+      ],
+      "verification_method": "Configurable-timeout test + source inspection of frontend aborts",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "src/rippleback/client.py",
+          "detail": "DEFAULT_TIMEOUT_SECONDS=30.0; asyncio.wait_for(session.call_tool(...), timeout=self.timeout)"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts",
+          "detail": "AbortSignal.timeout(30_000) tool, (10_000) tools, (5_000) health"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "test_client_timeout_is_configurable"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-08",
+      "name": "Connection failure handling",
+      "description": "Transport failures tear the session down, surface MCPConnectionError, adapter returns 503, health reports connected=false, frontend marks MCP offline.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Server down -> adapter 503 and honest state",
+        "Frontend checkConnection reports offline with error",
+        "No crash, no fabricated data"
+      ],
+      "verification_method": "Live offline simulation (client pointed at closed port) + adapter 503 test + frontend source",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "RIPPLEBACK_MCP_URL=http://127.0.0.1:9/mcp -> MCPConnectionError 'MCP connection failed during initialize'; assistant replied 'MCP server unreachable ... Nothing was executed'",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_adapter.py",
+          "detail": "test_health_reports_503_when_mcp_unreachable"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "test_server_unavailable_raises_connection_error"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts",
+          "detail": "checkConnection sets connected=false + error; plan load failure -> ErrorState in App.tsx"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-09",
+      "name": "Reconnection behavior",
+      "description": "Transport failure marks the session disconnected in-place (never fire-and-forget); the next use reconnects; safe reads retry once; tool calls are never silently retried.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Disconnected session reconnects on next call",
+        "No retry of mutating-capable tool calls",
+        "Health flips back to connected after server restart"
+      ],
+      "verification_method": "Dedicated recovery test + runbook restart procedure",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "test_transport_failure_marks_disconnected_and_recovers"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/client.py",
+          "detail": "Narrow retries: list_tools/health reconnect once; call_tool never retried"
+        },
+        {
+          "type": "source",
+          "path": "DEMO_RUNBOOK.md §9",
+          "detail": "Adapter reconnects after server restart (health flips back to connected)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Server-restart flip not re-enacted in this audit session (would disrupt the running stack) — covered by passing automated test."
+    },
+    {
+      "id": "MCP-10",
+      "name": "Unknown-tool handling",
+      "description": "Unknown tool names return 404 with the sorted list of available tools from the live registry.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "HTTP 404 + isError=true + available tool list",
+        "Never treated as success"
+      ],
+      "verification_method": "Live call + adapter/client tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "POST /api/mcp/tool {tool:no_such_tool} -> HTTP 404, error lists all 11 available tools",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_adapter.py",
+          "detail": "test_unknown_tool_returns_404_with_clear_error"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "test_invalid_tool_name_raises"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-11",
+      "name": "Invalid-argument handling",
+      "description": "Non-object arguments -> 400; schema-invalid arguments -> isError with explicit problem list; malformed option ids -> structured tool errors.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Malformed JSON body -> 400",
+        "Missing/incorrect args -> clear isError message",
+        "Errors are visible to the frontend as failures"
+      ],
+      "verification_method": "Live calls + adapter malformed-input tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "arguments:'not-an-object' -> HTTP 400; missing scenario_id -> isError=true message",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_adapter.py",
+          "detail": "test_malformed_requests_are_rejected, test_invalid_arguments_return_clear_error"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Doc note: README §19 says '400 bad input'; schema-invalid args actually return HTTP 200 + isError:true (body-level 400 is only for malformed JSON). Behavior is honest; README wording should be corrected (DOC-01)."
+    },
+    {
+      "id": "MCP-12",
+      "name": "Local API adapter surface",
+      "description": "Starlette adapter on :8001 exposing /api/health, /api/mcp/tools, /api/mcp/tool, /api/assistant/chat with validation, CORS for the Vite origin, and lifecycle cleanup.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "All four endpoints respond live through the proxy",
+        "Health reports MCP + assistant provider state",
+        "Malformed requests rejected with 400"
+      ],
+      "verification_method": "Live HTTP calls through Vite proxy + adapter test suite",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "POST /api/assistant/chat through localhost:5173 -> 200 with reply+steps",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-13",
+      "name": "Server/client integration through the Vite proxy",
+      "description": "Browser -> Vite /api proxy -> adapter (single genuine MCP session) -> MCP server; the browser never speaks MCP directly.",
+      "category": "mcp",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Every demo API call in this audit went through localhost:5173 and reached real tools",
+        "vite.config.ts targets adapter port from RIPPLEBACK_ADAPTER_PORT (default 8001)",
+        "Old Node raw-JSON-RPC shim removed"
+      ],
+      "verification_method": "All live workflow evidence collected through http://localhost:5173/api/*",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Vite dev server http://localhost:5173 serves the app; /api/* proxied to adapter :8001; index.html returned 200",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "frontend/vite.config.ts",
+          "detail": "proxy '/api' -> http://127.0.0.1:${ADAPTER_PORT}"
+        },
+        {
+          "type": "source",
+          "path": "git status",
+          "detail": "frontend/proxy-server.cjs deleted (D) — replaced by the adapter"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "MCP-14",
+      "name": "Read-only guarantees at transport layer",
+      "description": "Adapter/client expose no write endpoint; only GET/POST analysis calls exist; assistant and tools cannot mutate committed state.",
+      "category": "mcp",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "No write route registered in the adapter",
+        "Read-only recheck after full workflow",
+        "Dedicated tests assert non-mutation"
+      ],
+      "verification_method": "Route inspection + live before/after + tests",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "src/rippleback/adapter.py",
+          "detail": "routes: health, list_tools, call_tool, chat only; CORS allow_methods GET/POST"
+        },
+        {
+          "type": "live_api",
+          "detail": "get_plan_state('project-full') before AND after triage+alternatives+compare+schedule workflow -> version=1, status=healthy, disruptions=[] (unchanged)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-01",
+      "name": "Natural-language request routing",
+      "description": "intents.py deterministically maps a message to one intent and extracts literal parameters; no id invention.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Realistic prompts route to the right intent",
+        "Unknown entity text never becomes a guessed id"
+      ],
+      "verification_method": "Live assistant chats + intent/parser tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Prompt 'What is blocked if the payment API goes down?' -> intent=recovery_workflow, 5 tool calls",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Prompt 'What is blocked?' (no scenario) -> intent=analyze_blocked_tasks, needs_clarification=true, 0 calls",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Prompt 'Generate a recovery schedule after a vendor delivery outage.' -> intent=generate_recovery_schedule, 2 calls",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-02",
+      "name": "Assistant tool discovery",
+      "description": "Orchestrator sequences live-discovered tools; a scheduling tool is routed by name only if registered.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Tool list comes from client.list_tools()",
+        "Unregistered tool -> honest answer, no fabrication"
+      ],
+      "verification_method": "Tests + live behavior",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "src/rippleback/assistant/orchestrator.py:157",
+          "detail": "tools = await self.client.list_tools() before routing"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_schedule_request_without_scheduling_tool_refuses_to_fabricate; test_schedule_tool_is_discovered_dynamically_when_registered"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-03",
+      "name": "Tool selection per intent",
+      "description": "Each intent maps to a tool sequence (triage, alternatives, compare, schedule, forecast, etc.) using live intermediate results.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Multi-step workflow passes actual intermediate results between steps"
+      ],
+      "verification_method": "Live workflow observation + orchestrator tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Full workflow prompt -> tools [get_plan_state, analyze_blocked_tasks, find_alternative_dependencies, compare_recovery_options, generate_recovery_schedule], all status=ok",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-04",
+      "name": "Argument preparation from live plan data",
+      "description": "Entities/plan version resolved from live get_plan_state; compare options are the ones alternatives returned; literal params (severity, delay_minutes, option_id) parsed from text.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "No hardcoded entity ids",
+        "Compare receives options produced earlier in the chain"
+      ],
+      "verification_method": "Live workflow + parser/resolution tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "5-step workflow arguments derived from live plan state (scenario_id=project-full)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-05",
+      "name": "Clarification when information is missing",
+      "description": "Missing scenario or option id -> a clarification question listing real options, with 0 tool calls instead of guessing.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Missing scenario -> clarification naming the scenario selector",
+        "0 tool calls when clarifying"
+      ],
+      "verification_method": "Live prompt + clarification tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "'What is blocked?' with no scenario_id -> needs_clarification=true, tool_calls_made=0, reply asks to pick a scenario",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-06",
+      "name": "Tool-call budget handling",
+      "description": "Per-turn budget (RIPPLEBACK_MAX_TOOL_CALLS, default 8) bounds workflows; truncation is reported honestly.",
+      "category": "assistant",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Budget enforced",
+        "truncated flag set when the budget stops a chain"
+      ],
+      "verification_method": "Dedicated budget test",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_tool_call_loop_is_bounded"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/assistant/orchestrator.py",
+          "detail": "max_tool_calls from env, default 8; ChatResponse.truncated"
+        },
+        {
+          "type": "live_api",
+          "detail": "Full workflow: tool_calls_made=5, truncated=false (under budget)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-07",
+      "name": "Assistant response generation",
+      "description": "explain.py renders concise Markdown from actual structured results with hypothetical labeling.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Reply reflects real result contents (counts, states, paths)",
+        "Hypothetical/read-only disclaimer present"
+      ],
+      "verification_method": "Live replies inspected + explain tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Triage reply: 'States: 5 blocked, 0 external, 2 at risk, 2 healthy, 1 done' with per-entity reasons and paths — matches live tool output",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Workflow reply tail: 'All results above are hypothetical and read-only. Nothing has been committed; a structurally feasible option still needs human review before adoption.'",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-08",
+      "name": "Structured tool-result presentation",
+      "description": "Response carries a full steps trace (tool, arguments, status, duration_ms, structured result) consumed by ChatPanel and visible in MCP Inspector.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "steps[] present with real results",
+        "Tool-call count reported (tool_calls_made)"
+      ],
+      "verification_method": "Live response inspection",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Assistant response keys: duration_ms, intent, needs_clarification, provider, provider_notes, reply, scenario_id, steps, tool_calls_made, truncated; steps include full structured results",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/ChatPanel.tsx",
+          "detail": "renders tool trace per message"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-09",
+      "name": "Error handling in workflows",
+      "description": "A failed step stops the chain with an honest explanation; failed tool calls are never presented as successes.",
+      "category": "assistant",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "First-step and mid-chain failures produce honest replies",
+        "Entity/backend errors reported, not retried"
+      ],
+      "verification_method": "Assistant tests + live offline observation",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_workflow_stops_honestly_when_intermediate_step_fails; test_first_step_failure_stops_workflow_with_explanation; test_entity_error_from_backend_is_reported_not_retried"
+        },
+        {
+          "type": "live_api",
+          "detail": "Offline: reply 'MCP server unreachable ... Nothing was executed.' with 0 steps",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-10",
+      "name": "Deterministic fallback behavior",
+      "description": "DeterministicProvider is the default; unknown provider names fall back; fallback is reported in reply metadata.",
+      "category": "assistant",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Default provider deterministic",
+        "Fallback reported honestly in metadata"
+      ],
+      "verification_method": "Live health metadata + provider tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "health assistant.provider=deterministic, fallback_used=false",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_make_provider_defaults_to_deterministic; test_unknown_provider_name_falls_back; test_assistant_reports_fallback_provider_in_reply_metadata"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-11",
+      "name": "Optional Bedrock model-provider integration",
+      "description": "BedrockProvider exists behind RIPPLEBACK_ASSISTANT_PROVIDER=bedrock with region/model env vars, validation of model output, and fallback to deterministic on any failure.",
+      "category": "assistant",
+      "priority": "low",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Provider code path implemented",
+        "Fallback without configuration covered by tests",
+        "A real Bedrock call has been made and validated end-to-end when configured"
+      ],
+      "verification_method": "Unit tests cover the unconfigured fallback only; a live Bedrock invocation requires AWS credentials and model id",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "src/rippleback/assistant/providers.py",
+          "detail": "BedrockProvider implemented; boto3 optional extra"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_bedrock_provider_falls_back_without_configuration; test_make_provider_bedrock_without_aws_config_falls_back"
+        },
+        {
+          "type": "live_api",
+          "detail": "RIPPLEBACK_ASSISTANT_PROVIDER not configured in this environment; health reports deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [
+        "Requires AWS credentials (environment)"
+      ],
+      "next_action": "Configure RIPPLEBACK_BEDROCK_REGION + RIPPLEBACK_BEDROCK_MODEL_ID, install '.[bedrock]', run one live chat, and record the provider actually used — or mark not_applicable if Bedrock is out of scope."
+    },
+    {
+      "id": "ASST-12",
+      "name": "End-to-end assistant workflows",
+      "description": "Full multi-step recovery workflow executes through a real MCP server and never mutates the committed plan.",
+      "category": "assistant",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "5-tool workflow runs live with all steps ok",
+        "Plan unchanged after workflow"
+      ],
+      "verification_method": "Live chat through the proxy + E2E tests against a live server",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Workflow prompt -> 5 steps all status=ok (get_plan_state, analyze_blocked_tasks, find_alternative_dependencies, compare_recovery_options, generate_recovery_schedule)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "get_plan_state('project-full') before AND after triage+alternatives+compare+schedule workflow -> version=1, status=healthy, disruptions=[] (unchanged)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "ASST-13",
+      "name": "Disconnected-server workflow behavior",
+      "description": "When the MCP server is down the assistant replies honestly (nothing executed, how to start, retry hint) instead of fabricating results.",
+      "category": "assistant",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Offline reply states nothing was executed",
+        "Tool calls made = 0"
+      ],
+      "verification_method": "Live offline simulation + adapter/assistant offline tests",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Client pointed at closed port -> reply '**MCP server unreachable.** ... Nothing was executed.'; tool_calls_made=0; MCPConnectionError raised",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_assistant.py",
+          "detail": "test_offline_server_yields_clear_retryable_reply"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Minor observation: offline early-return keeps the default intent label 'help' (reply content is correct). Cosmetic only — see known_limitations."
+    },
+    {
+      "id": "FE-01",
+      "name": "Overview dashboard",
+      "description": "Metrics from live plan/triage/comparison/schedule state, active disruption card, recovery summary, honest placeholders when no analysis has run.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Renders live metrics (entities, blocked, at-risk, feasible options, schedule duration)",
+        "Plan error surfaced with retry",
+        "No fabricated numbers when analysis not run"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/OverviewView.tsx",
+          "detail": "226 lines: MetricCards read planData/triageResult/comparisonResult from the store; planError block; '—' placeholders for unloaded data; 'no triage run'/'no comparison run' units"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npx tsc -b",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-02",
+      "name": "Dependency Graph page",
+      "description": "ReactFlow graph with fit-to-view, zoom/pan, controls, minimap, legend, node detail, state colors, filters.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Graph renders from live scenario data",
+        "Fit/zoom/pan/minimap/legend present and functional",
+        "Blocked/at-risk/healthy/completed visually distinct",
+        "Node inspection shows deps/evidence"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/DependencyGraph.tsx",
+          "detail": "708 lines: fitView (maxZoom caps), Controls, MiniMap toggle, collapsible legend, state color map (blocked #FF6464 / at_risk #FFBF4A / healthy #75E6A0 / done #737368), filter bar, node detail panel"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "planGate gates the graph behind loading/error states; graph container has min-h and flex sizing"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-03",
+      "name": "Disruptions page",
+      "description": "Scenario-driven disruption list/history with honest empty state.",
+      "category": "frontend",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Renders disruption state from the store",
+        "Empty state explains nothing has been simulated",
+        "No fake history"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/DisruptionsView.tsx",
+          "detail": "136 lines reading store disruption state; empty-state copy present"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-04",
+      "name": "Impact Analysis page",
+      "description": "Triage + simulation results: task list, status filters, impact summary, dependency chains with evidence paths.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Readable task list with one state per entity",
+        "Filters work",
+        "Evidence chains understandable",
+        "Disconnected state explicit"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ImpactPanel.tsx",
+          "detail": "475 lines: live triage/impact results only, explicit 'no mock data' comment, loading/error/disconnected props from App.tsx"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/ui/EvidencePath.tsx",
+          "detail": "evidence path renderer"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-05",
+      "name": "Recovery Planner page",
+      "description": "Option cards from live alternatives/comparison with feasibility status, violations, excluded options, selection.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Cards show real options with feasibility and violations",
+        "Excluded options listed with reasons",
+        "Limited/empty states present",
+        "Selection drives other views"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/RecoveryOptions.tsx",
+          "detail": "630 lines: comparisonResult/ranking rendering, loading/error/empty states (5 loading + 5 empty-state references in source)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-06",
+      "name": "Schedule page (+ forecast chart)",
+      "description": "Relative-duration schedule view: readiness groups, layers, execution order, timeline chart with visible units, baseline-vs-recovery comparison.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Charts/axes readable with duration_units labels",
+        "No calendar dates anywhere",
+        "Baseline vs recovery comparison shown",
+        "Honest handling of incomplete data"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ScheduleView.tsx",
+          "detail": "532 lines; header states 'Relative durations only — this tool never produces calendar dates'"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/TimelineChart.tsx",
+          "detail": "245 lines recharts timeline in relative units"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-07",
+      "name": "Review Plan page",
+      "description": "Structural evaluation + proposed schedule for the selected option, with explicit 'nothing approved or committed' copy and no approval button.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Useful no-selection state",
+        "Runs real evaluate_recovery_plan / generate_recovery_schedule",
+        "No claim of approval or commit",
+        "Clear next steps"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ReviewPlan.tsx",
+          "detail": "321 lines: 'The RippleBack backend is read-only: there is no approval or commit flow'; empty state 'Nothing here is approved or committed'; next-steps list instead of an approval button; disconnected state shows no mock results"
+        },
+        {
+          "type": "live_api",
+          "detail": "evaluate_recovery_plan and generate_recovery_schedule return real results through the same API used by this page",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-08",
+      "name": "Activity Log page",
+      "description": "Session activity events (stage, label, status, timestamp) from real operations.",
+      "category": "frontend",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Event labels/statuses/timestamps render from real session events",
+        "Honest history (session-scoped, no persistence claims)"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ActivityView.tsx",
+          "detail": "111 lines over store activity list; App.tsx logs real mcp_connected/tool_discovery events"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/ActivityLog.tsx",
+          "detail": "122-line workflow stage strip"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-09",
+      "name": "MCP Inspector page",
+      "description": "Connection health, live discovered tool count, schemas, filterable call log, expandable request/result details, errors and execution states.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Connection health accurate",
+        "Tool count = live discovered count",
+        "Schemas readable",
+        "Call log filterable by name/status",
+        "Failed calls visibly failed"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/MCPInspector.tsx",
+          "detail": "563 lines: connection summary, tools.length rendered live, schema display, search + status filter (all/success/error/pending) over call log, expandable args/results, 'never fabricates results' offline copy"
+        },
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-10",
+      "name": "AI assistant panel",
+      "description": "Chat conversation with persistent history, tool execution trace, loading/failure states, docked on lg+ and overlay drawer below.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Conversation area usable",
+        "History persists across navigation and scenario switches",
+        "Tool calls visible with status",
+        "Loading/offline states correct",
+        "Responsive drawer"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/store/appStore.ts",
+          "detail": "chat messages live in the Zustand store; SET_SCENARIO preserves chat, mcpStatus, activeView"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "assistantDocked at >=1024px; fixed overlay with backdrop below lg; collapse grabber preserves conversation"
+        },
+        {
+          "type": "live_api",
+          "detail": "ChatPanel receives the same steps trace verified in ASST-08",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-11",
+      "name": "Loading, empty, and error states",
+      "description": "Every view gates on real state: Spinner while loading, EmptyState when nothing to show, ErrorState with retry on failure, disconnected copy.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Loading states render during fetches",
+        "Empty states explain what to do",
+        "Errors visible with retry",
+        "No fabricated fallback data"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "planGate: Spinner -> 'Loading plan…', ErrorState with retry and offline hint"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/ui",
+          "detail": "Spinner, ErrorState, EmptyState, LoadingSkeleton, MetricCard components exist"
+        },
+        {
+          "type": "source",
+          "path": "grep for mock fallbacks",
+          "detail": "Only 'no mock data' copy found — no mock fallback code paths remain"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-12",
+      "name": "Navigation between destinations",
+      "description": "Sidebar navigates Overview, Dependency Graph, Disruptions, Impact Analysis, Recovery Planner, Schedule, Review Plan, Activity Log, MCP Inspector; mobile drawer.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "All 9 destinations reachable",
+        "Active state correct",
+        "Mobile nav works"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/Sidebar.tsx",
+          "detail": "NAV entries for all 9 views + mobileOpen/close props; collapse toggle; aria labels"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "view router switches on activeView for all 9 destinations + assistant panel"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-13",
+      "name": "Cross-page state consistency",
+      "description": "Shared Zustand store keeps plan, triage, impact, comparison, selection, connection, and chat consistent across views.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Scenario switch resets analysis but preserves chat/connection/layout",
+        "Selected option drives Schedule/Review consistently"
+      ],
+      "verification_method": "Source inspection + tsc/build (no browser available in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/store/appStore.ts",
+          "detail": "single AppProvider store; SET_SCENARIO merge rules documented in reducer"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+    },
+    {
+      "id": "FE-14",
+      "name": "Live-data-only frontend (no mock plan fallback)",
+      "description": "Plan/analysis data comes only from real MCP tool calls; failures surface as errors; static data is limited to scenario labels.",
+      "category": "frontend",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "No mock plan/analysis code path",
+        "Offline shows explicit errors, not fake results",
+        "Only human-readable labels are static"
+      ],
+      "verification_method": "Source grep + live behavior",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/data/scenarios.ts",
+          "detail": "labels/descriptions only; comment: every rendered value comes from the real MCP server"
+        },
+        {
+          "type": "source",
+          "path": "grep 'mock' in frontend/src",
+          "detail": "Only 'no mock fallback' statements in App/DisruptionControls/ReviewPlan/ImpactPanel"
+        },
+        {
+          "type": "live_api",
+          "detail": "Plan load failure path sets planError and renders ErrorState (source)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "FE-15",
+      "name": "Frontend production build",
+      "description": "npm run build (tsc -b && vite build) succeeds and emits dist/.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit code 0",
+        "dist/ emitted"
+      ],
+      "verification_method": "Command run during this audit",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Non-blocking: chunk-size warning (>500 kB) — consider code-splitting (low priority)."
+    },
+    {
+      "id": "FE-16",
+      "name": "TypeScript check",
+      "description": "npx tsc -b passes with no diagnostics.",
+      "category": "frontend",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit code 0, no diagnostics"
+      ],
+      "verification_method": "Command run during this audit",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npx tsc -b",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "FE-17",
+      "name": "Lint check",
+      "description": "npm run lint (oxlint) passes with no diagnostics.",
+      "category": "frontend",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit code 0"
+      ],
+      "verification_method": "Command run during this audit",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npm run lint",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics (oxlint 1.88.0)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Note: previous progress file recorded 1 react/set-state-in-effect warning in MCPInspector.tsx; current run reports none (warning resolved or rule set differs by version)."
+    },
+    {
+      "id": "FE-18",
+      "name": "Frontend automated tests",
+      "description": "No test runner (vitest/jest) is configured in frontend/package.json.",
+      "category": "frontend",
+      "priority": "medium",
+      "status": "not_started",
+      "implementation": "not_started",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "A test runner and a meaningful set of component/store tests exist, OR the scope decision to omit them is recorded"
+      ],
+      "verification_method": "Inspect package.json scripts",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/package.json",
+          "detail": "scripts: dev, build, lint, preview — no test script; no vitest/jest dependencies"
+        }
+      ],
+      "dependencies": [
+        "Scope decision needed"
+      ],
+      "next_action": "Decide scope: add Vitest + component tests (recommended for release) or record frontend unit tests as out of scope. Do not claim frontend tests pass until a runner exists."
+    },
+    {
+      "id": "UI-01",
+      "name": "Black × acid-lime design system",
+      "description": "Design tokens (surface/ink/acid palette) defined in Tailwind config and index.css; component classes (card, btn-ghost, label-tech) consistent.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Design tokens exist in code",
+        "Palette identity preserved (no changes made during audit)"
+      ],
+      "verification_method": "Source inspection",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/tailwind.config.js",
+          "detail": "'Black × acid-lime control-center palette': acid, ink, surface token groups"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/index.css",
+          "detail": "custom component classes; modified in working tree but consistent with tokens"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Visual confirmation of token application is covered by UI-13 (blocked: browser)."
+    },
+    {
+      "id": "UI-02",
+      "name": "Application layout",
+      "description": "Responsive sidebar, clear page header, correctly sized main workspace, optional assistant panel, consistent spacing.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Sidebar + header + workspace render at target widths",
+        "Assistant panel docks/collapses correctly",
+        "No horizontal overflow"
+      ],
+      "verification_method": "Browser inspection (blocked in this environment)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "flex h-screen overflow-hidden shell; min-w-0 on content; assistantDocked >=1024; context aside only when viewport affords it (>=1280 / >=1600)"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/TopHeader.tsx",
+          "detail": "page title, scenario selector, connection status"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Verify layout at 1440/1280/1024/768/390 and screenshot."
+    },
+    {
+      "id": "UI-03",
+      "name": "Overview readability",
+      "description": "Readable metrics, clear active disruption, useful recovery summary, correct loading/empty states.",
+      "category": "ui_ux",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Metrics legible",
+        "Active disruption clear",
+        "Loading/empty states correct"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/OverviewView.tsx",
+          "detail": "MetricCard grid with tones and honest units; plan error block; empty analysis copy"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Verify metric legibility and empty states on the Overview page."
+    },
+    {
+      "id": "UI-04",
+      "name": "Dependency graph visual quality",
+      "description": "Appropriate initial zoom, readable nodes/labels, fit-to-view, zoom/pan, responsive resizing, node inspection, legend, sized minimap, state distinctions.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "complete",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "Initial zoom readable (fit caps maxZoom)",
+        "Labels readable at default zoom",
+        "Minimap sensibly sized",
+        "Legend present",
+        "4+ states visually distinct"
+      ],
+      "verification_method": "Browser screenshot inspection (blocked: no browser connected)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/DependencyGraph.tsx",
+          "detail": "fitView with maxZoom caps, Controls bar, MiniMap toggle (default on), collapsible legend, per-state color map, filters, node detail panel"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Open the Dependency Graph, screenshot at each width, confirm label readability and minimap sizing."
+    },
+    {
+      "id": "UI-05",
+      "name": "Disruption simulator usability",
+      "description": "Readable scenario selection, clear severity controls, accurate simulation status, useful result summaries, hypothetical/read-only disclaimer.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Scenario + severity controls usable",
+        "Simulation status accurate",
+        "Read-only disclaimer visible"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/DisruptionControls.tsx",
+          "detail": "402 lines: scenario picker, event types, severity options (low/medium/high/critical), explicit 'no mock fallbacks' and 'MCP backend unreachable' states"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/TopHeader.tsx",
+          "detail": "scenario selector with SCENARIO_INFO labels"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Run a simulation from the UI and confirm disclaimer/status copy."
+    },
+    {
+      "id": "UI-06",
+      "name": "Impact analysis readability",
+      "description": "Readable task list, clear status filters, useful impact summaries, understandable dependency chains.",
+      "category": "ui_ux",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "List readable",
+        "Filters clear",
+        "Evidence chains understandable"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ImpactPanel.tsx",
+          "detail": "state list, filters, summary tiles, evidence chains from live results"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Verify filters and chain rendering with a live triage result."
+    },
+    {
+      "id": "UI-07",
+      "name": "Recovery planner usability",
+      "description": "Readable option cards, clear feasibility status, visible constraint violations, useful limited/empty states, consistent selection.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Cards readable with feasibility + violations",
+        "Empty/limited states useful",
+        "Selection consistent across pages"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/RecoveryOptions.tsx",
+          "detail": "option cards with ranked/excluded sections, feasibility badges, violation display, empty/loading states"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Compare two options and confirm selection propagates to Schedule/Review."
+    },
+    {
+      "id": "UI-08",
+      "name": "Schedule chart readability and honest units",
+      "description": "Readable charts/axes, visible duration_units, clear baseline-vs-recovery comparison, no fabricated calendar dates.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Axes labeled with relative units",
+        "No date rendering",
+        "Comparison visible"
+      ],
+      "verification_method": "Browser inspection + code evidence for unit labels",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ScheduleView.tsx",
+          "detail": "explicit 'never produces calendar dates' header; unit badges"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/TimelineChart.tsx",
+          "detail": "recharts in relative offsets"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Verify chart axis labels and the baseline-vs-recovery block."
+    },
+    {
+      "id": "UI-09",
+      "name": "Review Plan honesty copy",
+      "description": "Useful no-selection state, clear option details, real evaluation results, no false approval/commit claims.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Copy states nothing is approved/committed",
+        "No approval button",
+        "Real results shown"
+      ],
+      "verification_method": "Browser inspection (source copy verified)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ReviewPlan.tsx",
+          "detail": "no-approval copy verified in source: lines 4, 42, 111, 221-227"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Confirm rendered copy on the Review Plan page."
+    },
+    {
+      "id": "UI-10",
+      "name": "Activity Log readability",
+      "description": "Readable event labels, correct event statuses, honest timestamps and history.",
+      "category": "ui_ux",
+      "priority": "low",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Events render with label/status/time",
+        "Session-scoped honesty"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ActivityView.tsx",
+          "detail": "event rows over store activity entries"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Confirm timestamps and status colors."
+    },
+    {
+      "id": "UI-11",
+      "name": "MCP Inspector observability",
+      "description": "Clear connection health, actual discovered tool count, readable schemas, expandable request/result details, filterable call log, clear errors/execution states.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Health matches adapter state",
+        "Count = 11 live",
+        "Schemas expand",
+        "Log filter works",
+        "Errors visible"
+      ],
+      "verification_method": "Browser inspection (live API + source verified)",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/components/MCPInspector.tsx",
+          "detail": "connection summary + live count + filters + expandable details"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Drive a few tool calls and confirm they appear with statuses and filters."
+    },
+    {
+      "id": "UI-12",
+      "name": "AI assistant UX",
+      "description": "Usable conversation area, persistent history while navigating, tool execution visibility, readable responses, loading/failure states, responsive drawer.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "History persists across view/scenario switches",
+        "Tool trace visible",
+        "Offline state clear",
+        "Drawer works on small screens"
+      ],
+      "verification_method": "Browser inspection (store-level persistence verified in source)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/store/appStore.ts",
+          "detail": "chat preserved on SET_SCENARIO; messages in global store"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "overlay drawer below lg with backdrop; docked column on lg+"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Send a message, navigate away and back, resize to 390px."
+    },
+    {
+      "id": "UI-13",
+      "name": "Responsive checks at 1440/1280/1024/768/390",
+      "description": "Verify layout, graph sizing, assistant drawer, and overflow at the five required widths with actual screenshots.",
+      "category": "ui_ux",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "complete",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "Screenshots captured at all five widths",
+        "No horizontal overflow at any width"
+      ],
+      "verification_method": "Browser screenshots (blocked: no desktop browser connected)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "viewport-width logic exists (>=1024 dock, >=1280/1600 context aside) — implementation present, unverified visually"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Run the five-width screenshot pass once a browser is available."
+    },
+    {
+      "id": "UI-14",
+      "name": "No horizontal overflow / spacing consistency",
+      "description": "Main workspace never scrolls horizontally; spacing and typography consistent across pages.",
+      "category": "ui_ux",
+      "priority": "medium",
+      "status": "blocked",
+      "implementation": "complete",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "No horizontal scrollbar at any required width"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/App.tsx",
+          "detail": "overflow-hidden + min-w-0 on layout columns (source-level mitigation)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Check document.scrollWidth vs clientWidth at each width."
+    },
+    {
+      "id": "UI-15",
+      "name": "Page title / branding polish",
+      "description": "index.html title is the generic 'frontend' rather than the product name.",
+      "category": "ui_ux",
+      "priority": "low",
+      "status": "not_started",
+      "implementation": "not_started",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "<title> shows RippleBack (or product name)"
+      ],
+      "verification_method": "Read index.html",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/index.html",
+          "detail": "<title>frontend</title> — generic placeholder"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Set the page title to 'RippleBack' (one-line change; do during normal work, not this audit)."
+    },
+    {
+      "id": "TEST-01",
+      "name": "Full backend test suite",
+      "description": "Unit + integration + live-server tests in one run.",
+      "category": "testing",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Command exits 0",
+        "All tests pass",
+        "Result current (run during this audit)"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/ -q",
+          "exit_code": 0,
+          "result": "504 passed in 3.62s",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/ -q (second run)",
+          "exit_code": 0,
+          "result": "504 passed in 3.72s",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified twice during this audit."
+    },
+    {
+      "id": "TEST-02",
+      "name": "MCP integration tests (live server)",
+      "description": "tests/integration/test_mcp_server.py spawns a real server and talks to it with the official client SDK.",
+      "category": "testing",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "41 tests pass",
+        "Covers tool registration contract, wrappers, error paths, non-mutation"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+          "exit_code": 0,
+          "result": "41 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/integration/test_mcp_server.py",
+          "detail": "1038 lines; includes test_milestone6_tools_do_not_mutate_plan"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-03",
+      "name": "MCP client + adapter tests",
+      "description": "Connection lifecycle, live discovery, invalid names/args, error propagation, offline handling, recovery, concurrency, adapter HTTP surface.",
+      "category": "testing",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "29 tests pass (17 client + 12 adapter)"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_client.py",
+          "detail": "17 tests"
+        },
+        {
+          "type": "source",
+          "path": "tests/test_adapter.py",
+          "detail": "12 tests"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-04",
+      "name": "Assistant tests",
+      "description": "Intent mapping, clarification, live resolution, multi-step workflows, failed steps, budget, honesty guarantees, provider fallback, E2E schedule workflow.",
+      "category": "testing",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "32 tests pass"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -v",
+          "exit_code": 0,
+          "result": "32 passed (full names inspected)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-05",
+      "name": "Scheduler tests",
+      "description": "Ordering, groups, disruption, infeasibility, missing durations, buffers, determinism, non-mutation, comparison.",
+      "category": "testing",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "18 tests pass"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-06",
+      "name": "Core engine unit tests",
+      "description": "triage, forecast, constraints, scoring, comparison, substitutes, milestone6 integration, graph, critical path, impact, recovery, evaluation, workload, scenarios.",
+      "category": "testing",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "All engine suites pass (191 + 20 + 22 + 25 + 126 = 384 tests)"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_triage.py -q",
+          "exit_code": 0,
+          "result": "22 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_graph.py tests/test_critical_path.py -q",
+          "exit_code": 0,
+          "result": "25 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-07",
+      "name": "TypeScript type check",
+      "description": "npx tsc -b clean.",
+      "category": "testing",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit 0"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npx tsc -b",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-08",
+      "name": "Frontend production build",
+      "description": "tsc -b && vite build emits dist/.",
+      "category": "testing",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit 0"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Known warning: chunk >500 kB (non-blocking; code-splitting optional)."
+    },
+    {
+      "id": "TEST-09",
+      "name": "Lint",
+      "description": "oxlint clean.",
+      "category": "testing",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Exit 0"
+      ],
+      "verification_method": "Direct command execution",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "cd frontend && npm run lint",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics (oxlint 1.88.0)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-10",
+      "name": "Test execution evidence recording",
+      "description": "Exact commands, timestamps, exit codes, and counts recorded in this progress file.",
+      "category": "testing",
+      "priority": "medium",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Every suite has command + timestamp + exit code + counts"
+      ],
+      "verification_method": "This audit run",
+      "evidence": [
+        {
+          "type": "command",
+          "command": "all suites (see last_verified_test_results)",
+          "exit_code": 0,
+          "result": "recorded with timestamps and counts",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "TEST-11",
+      "name": "Frontend automated tests",
+      "description": "No frontend test runner configured — frontend tests cannot be claimed.",
+      "category": "testing",
+      "priority": "medium",
+      "status": "not_started",
+      "implementation": "not_started",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Either a runner exists with passing tests, or omission is an explicit scope decision"
+      ],
+      "verification_method": "package.json inspection",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/package.json",
+          "detail": "no test script, no test dependencies"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Add Vitest + smoke tests, or record as out of scope."
+    },
+    {
+      "id": "TEST-12",
+      "name": "Browser-based functional testing",
+      "description": "Click-through of every page, controls, and workflows in a real browser.",
+      "category": "testing",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "not_applicable",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "Each page exercised in a browser with observed behavior"
+      ],
+      "verification_method": "Browser automation (unavailable: browser.disconnected)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "audit attempt",
+          "detail": "tools.browser.tabs.list -> 'No desktop browser is connected to this session'"
+        }
+      ],
+      "dependencies": [
+        "Depends on browser availability (environment)"
+      ],
+      "next_action": "Connect a desktop browser to this session, then run the full click-through (pairs with UI-13)."
+    },
+    {
+      "id": "TEST-13",
+      "name": "Visual verification (screenshots)",
+      "description": "Screenshots at required widths proving readability and layout.",
+      "category": "testing",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "not_applicable",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "Screenshots captured for all pages at 1440/1280/1024/768/390"
+      ],
+      "verification_method": "Browser screenshots (unavailable)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "audit attempt",
+          "detail": "browser tooling disconnected"
+        }
+      ],
+      "dependencies": [
+        "Depends on browser availability (environment)"
+      ],
+      "next_action": "Capture screenshots once a browser is connected; attach evidence to UI-13."
+    },
+    {
+      "id": "PRD-01",
+      "name": "Strict PRD requirements audit",
+      "description": "Compare every mandatory PRD requirement against the implementation. The PRD document is not present in the repository (no *prd* or *.pdf* files found).",
+      "category": "prd",
+      "priority": "critical",
+      "status": "blocked",
+      "implementation": "not_applicable",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "PRD located",
+        "Every requirement mapped to implementation + evidence",
+        "Gaps graded by severity"
+      ],
+      "verification_method": "Document search + requirement-by-requirement mapping",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "find / -iname '*prd*' and '*.pdf' (repo)",
+          "detail": "No PRD file in the repository; prior progress file records the same finding (prd_pdf_absent)"
+        }
+      ],
+      "dependencies": [
+        "Missing document (PRD)"
+      ],
+      "next_action": "Request the PRD (or its section list) from the product owner; until then the strict requirements audit stays blocked and claims of full PRD compliance must not be made."
+    },
+    {
+      "id": "PRD-02",
+      "name": "Write-side workflow (approval, commit/apply, post-verification, applied-vs-failed, version conflicts, duplicate protection)",
+      "description": "Whether the product requires human approval before applying a recovery plan, a commit/apply capability, post-application verification, applied-vs-failed reporting, optimistic-concurrency version checks, and duplicate-operation protection. None is implemented; the product is read-only by design (README §16 'No writes'). Requirement status is unknowable without the PRD.",
+      "category": "prd",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "not_started",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "PRD/product decision obtained on whether writes are in scope",
+        "If in scope: approval gate, commit tool, post-apply verification, applied-vs-failed report, version conflict handling, duplicate protection — all implemented and tested",
+        "If out of scope: recorded as explicitly not applicable with sign-off"
+      ],
+      "verification_method": "Requirement determination (blocked) — implementation absent (verified: no write tool registered)",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "'No writes: no committing a reassignment ... or committing a recovery/evaluation/rebalance/forecast back to the plan'"
+        },
+        {
+          "type": "source",
+          "path": "project_progress.json (v1)",
+          "detail": "unresolved issue prd_commit_tool_missing: product-level decision needed"
+        }
+      ],
+      "dependencies": [
+        "PRD-01 (needs PRD)",
+        "Product decision"
+      ],
+      "next_action": "Get a product decision (with the PRD) on commit/approval scope. Do not implement without sign-off; do not claim compliance either way."
+    },
+    {
+      "id": "PRD-03",
+      "name": "Persistence across sessions",
+      "description": "Whether disruptions, options, forecasts, evaluations, rebalances, or schedules must persist. Currently none persist; fixtures are in-process Python dicts.",
+      "category": "prd",
+      "priority": "medium",
+      "status": "not_applicable",
+      "implementation": "not_applicable",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Determined out of scope by documented limitations, or implemented with durable storage"
+      ],
+      "verification_method": "Scope documentation review",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "'No ... persistence (fixtures are in-process Python dicts)'"
+        },
+        {
+          "type": "source",
+          "path": "docs/data-contract.md §Open questions #5/#8",
+          "detail": "Confirmed disruptions and mutation model explicitly still open with the team"
+        }
+      ],
+      "dependencies": [
+        "PRD-01"
+      ],
+      "next_action": "Re-evaluate if the PRD mandates persistence; excluded from denominators as documented out of current scope."
+    },
+    {
+      "id": "PRD-04",
+      "name": "Real calendar scheduling",
+      "description": "Whether calendar dates, working hours, timezones, or deadline optimization are required. The engine deliberately schedules in relative duration_units only.",
+      "category": "prd",
+      "priority": "medium",
+      "status": "not_applicable",
+      "implementation": "not_applicable",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Either explicitly out of scope (current documented position) or implemented with a real calendar model"
+      ],
+      "verification_method": "Scope documentation review + output scan",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "'No calendar scheduling ... no wall-clock scheduling ... is possible or claimed'"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/scheduler.py module docstring",
+          "detail": "t=0 = moment of analysis; calendar deliberately not implemented"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [
+        "PRD-01"
+      ],
+      "next_action": "Re-evaluate if the PRD mandates calendar scheduling; excluded from denominators as documented out of current scope."
+    },
+    {
+      "id": "PRD-05",
+      "name": "Authentication / authorization",
+      "description": "Whether auth is required. The server binds localhost with no credentials; README warns never to expose it publicly.",
+      "category": "prd",
+      "priority": "medium",
+      "status": "not_applicable",
+      "implementation": "not_applicable",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Either explicitly out of scope for a localhost demo (current position) or implemented"
+      ],
+      "verification_method": "Scope documentation review",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "'No auth: server binds to localhost with no authentication — never expose it publicly'"
+        }
+      ],
+      "dependencies": [
+        "PRD-01"
+      ],
+      "next_action": "Re-evaluate before any non-localhost deployment; excluded from denominators as documented out of current scope."
+    },
+    {
+      "id": "PRD-06",
+      "name": "Audit history",
+      "description": "Whether a durable audit history is required. A session-scoped Activity Log exists in the frontend; no persistent audit trail exists on the backend.",
+      "category": "prd",
+      "priority": "medium",
+      "status": "not_applicable",
+      "implementation": "not_applicable",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Either explicitly out of scope (persistence is out of scope per README) or implemented durably"
+      ],
+      "verification_method": "Scope documentation review",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ActivityView.tsx",
+          "detail": "session activity log implemented (FE-08)"
+        },
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "no persistence documented"
+        }
+      ],
+      "dependencies": [
+        "PRD-01"
+      ],
+      "next_action": "Re-evaluate if the PRD mandates a durable audit trail; session log covered by FE-08."
+    },
+    {
+      "id": "PRD-07",
+      "name": "Data-contract open questions ratified",
+      "description": "docs/data-contract.md lists 13+ open questions for the team (dependency direction, status enums, version semantics, mutation model, recovery semantics, constraint types, thresholds, etc.).",
+      "category": "prd",
+      "priority": "medium",
+      "status": "blocked",
+      "implementation": "not_applicable",
+      "verification": "blocked",
+      "acceptance_criteria": [
+        "Team signs off each open question or records a decision"
+      ],
+      "verification_method": "Document review",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "docs/data-contract.md §Open questions for the team",
+          "detail": "13 numbered open questions, several marked 'Still OPEN'"
+        }
+      ],
+      "dependencies": [
+        "Team availability/decision"
+      ],
+      "next_action": "Circulate the open-questions list for ratification; record decisions in the data contract."
+    },
+    {
+      "id": "DEMO-01",
+      "name": "Start MCP server",
+      "description": "python -m rippleback.server starts and serves /mcp on 8000.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Server reachable, MCP handshake works"
+      ],
+      "verification_method": "Live observation + runbook command check",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "DEMO_RUNBOOK.md §1",
+          "detail": ".venv/bin/python -m rippleback.server (matches working setup)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified (server already running and healthy)."
+    },
+    {
+      "id": "DEMO-02",
+      "name": "Start adapter",
+      "description": "python -m rippleback.adapter serves the REST surface on 8001.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Adapter reachable, owns MCP session"
+      ],
+      "verification_method": "Live observation",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/adapter.py",
+          "detail": "uvicorn on RIPPLEBACK_ADAPTER_PORT default 8001"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-03",
+      "name": "Start frontend",
+      "description": "Vite dev server on 5173 serving the dashboard and proxying /api.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "App HTML served; proxy works"
+      ],
+      "verification_method": "Live observation",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "Vite dev server http://localhost:5173 serves the app; /api/* proxied to adapter :8001; index.html returned 200",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-04",
+      "name": "Health / connection status",
+      "description": "Dashboard health reflects real MCP connection, tool count, and assistant provider.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "connected=true, 11 tools, provider deterministic"
+      ],
+      "verification_method": "Live curl through the proxy",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/health -> 200: mcp.connected=true, 11 tools, server RippleBack v0.1.0, assistant provider=deterministic",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-05",
+      "name": "Inspect available tool registry",
+      "description": "Tool registry lists all live tools with schemas.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "count=11 with schemas"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-06",
+      "name": "Select a real supported scenario",
+      "description": "project-full chosen from the four shipped fixtures.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Scenario resolves with real entities"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "get_plan_state('project-full') -> 10 entities, 11 dependencies",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-07",
+      "name": "Simulate a disruption",
+      "description": "simulate_disruption returns affected sets with evidence paths.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Matches DEMO_RUNBOOK §3 expectations"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "direct=[backend-integration], trans=[integration-testing, release-validation, production-release, unit-testing], unaffected=4, plan_version=1, simulated=true",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-08",
+      "name": "Analyze affected tasks",
+      "description": "analyze_blocked_tasks returns triage states, summary, parallel work.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Summary and parallel work match runbook"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "summary {done:1, blocked:5, external:0, at_risk:2, healthy:2}; parallel_work=[vendor-delivery, frontend-integration, unit-testing, release-notes]",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-09",
+      "name": "Find alternative dependencies",
+      "description": "Alternatives returned for the disrupted entity.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "drop-dependency option returned"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "options=[drop-dependency:backend-integration->payment-api]",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-10",
+      "name": "Compare recovery options",
+      "description": "Comparison ranks options with a recommendation.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "outcome=ranked with recommendation"
+      ],
+      "verification_method": "Live API call",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "outcome=ranked, recommendation=drop-dependency:backend-integration->payment-api",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-11",
+      "name": "Generate a recovery schedule",
+      "description": "Schedule produced for committed baseline and for the recovery change set.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Both baseline and recovery schedules produced"
+      ],
+      "verification_method": "Live API calls",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "baseline: outcome=scheduled, completion 9.0; recovery: completion_delta=7.0, newly_unblocked present",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-12",
+      "name": "Verify schedule duration units",
+      "description": "Schedule uses relative duration_units; no calendar dates anywhere in output.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "unit=duration_units; no date-like strings in payload"
+      ],
+      "verification_method": "Live API call + string scan of the full response",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-13",
+      "name": "Inspect MCP tool calls in the MCP Inspector UI",
+      "description": "Tool calls appear in the inspector with status, duration, expandable args/results, and filters.",
+      "category": "demo",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Calls visible with status/duration",
+        "Expandable details",
+        "Filters work"
+      ],
+      "verification_method": "Browser inspection (blocked)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/MCPInspector.tsx",
+          "detail": "call-log rendering + filters verified in source"
+        },
+        {
+          "type": "live_api",
+          "detail": "The same call events are emitted by mcpClient._emit for every tool call made during this audit",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [
+        "TEST-12"
+      ],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Drive tool calls from the UI and confirm they appear in the inspector."
+    },
+    {
+      "id": "DEMO-14",
+      "name": "Test an error path",
+      "description": "Unknown scenario, unknown tool, invalid arguments, malformed body, and server-down paths all return honest errors.",
+      "category": "demo",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Every error path returns isError/error with clear messages",
+        "No error shown as success"
+      ],
+      "verification_method": "Live calls for each error path",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "unknown scenario -> structured error; unknown tool -> 404; missing arg -> isError; malformed body -> 400; closed-port client -> MCPConnectionError + honest assistant reply",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-15",
+      "name": "Confirm read-only operations do not modify committed state",
+      "description": "Plan version/status/disruptions unchanged after the full workflow.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "version=1, status=healthy, disruptions=[] before and after"
+      ],
+      "verification_method": "Before/after comparison during this audit",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "get_plan_state('project-full') before AND after triage+alternatives+compare+schedule workflow -> version=1, status=healthy, disruptions=[] (unchanged)",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DEMO-16",
+      "name": "Interface does not imply a recovery plan was applied",
+      "description": "UI copy never claims approval/commit/apply; review page states read-only explicitly.",
+      "category": "demo",
+      "priority": "critical",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "No button or copy implies an applied plan",
+        "Read-only disclaimer visible"
+      ],
+      "verification_method": "Source copy verified; rendered confirmation requires a browser",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/components/ReviewPlan.tsx",
+          "detail": "'Nothing here is approved or committed', 'the dashboard cannot commit changes'"
+        },
+        {
+          "type": "live_api",
+          "detail": "generate_recovery_schedule response carries simulated=true and limitations 'no schedule is committed'",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [
+        "UI-09"
+      ],
+      "next_action": "Blocked in this environment: no desktop browser is connected to the session (browser.tabs.list -> browser.disconnected), so rendering cannot be observed or screenshotted. Confirm rendered copy on Review Plan and Recovery Planner."
+    },
+    {
+      "id": "DEMO-17",
+      "name": "README and demo instructions match implementation",
+      "description": "Root README, frontend README, runbook, and inline comments must describe the current architecture and behavior.",
+      "category": "demo",
+      "priority": "medium",
+      "status": "partial",
+      "implementation": "partial",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Startup commands correct",
+        "Tool contracts match observed output",
+        "No stale architecture or behavior claims"
+      ],
+      "verification_method": "Claim-by-claim comparison against live behavior",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "README.md §7-§18",
+          "detail": "Test commands, tool examples, and error messages verified against live output (matches)"
+        },
+        {
+          "type": "live_api",
+          "detail": "Vite dev server http://localhost:5173 serves the app; /api/* proxied to adapter :8001; index.html returned 200",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "README.md §5, §19 troubleshooting",
+          "detail": "STALE: claims the dashboard 'falls back to labelled mock data' and 'Mock data is clearly labelled while offline' — no mock fallback exists in the current frontend (verified by grep)"
+        },
+        {
+          "type": "source",
+          "path": "README.md §1, §16",
+          "detail": "STALE: 'Explicitly not implemented ... a frontend' and 'No frontend' contradict §5/§19 which document the React dashboard"
+        },
+        {
+          "type": "source",
+          "path": "frontend/README.md",
+          "detail": "STALE: documents the removed Node shim (proxy-server.cjs), port 3001, and vite proxy /api/mcp — current architecture is Vite /api -> adapter :8001"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts header",
+          "detail": "STALE: says the proxy 'forwards to the Python MCP server at http://127.0.0.1:8000' — it actually forwards to the adapter on :8001"
+        }
+      ],
+      "dependencies": [
+        "DOC-01",
+        "DOC-02",
+        "DOC-05"
+      ],
+      "next_action": "Fix the stale sections: root README §1/§5/§16/§19 mock-frontend claims, frontend/README.md architecture, mcpClient.ts header comment. Keep DEMO_RUNBOOK (verified accurate)."
+    },
+    {
+      "id": "DOC-01",
+      "name": "Root README accuracy",
+      "description": "README.md must match the implemented system (tool contracts verified; architecture claims partly stale).",
+      "category": "docs",
+      "priority": "medium",
+      "status": "partial",
+      "implementation": "partial",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "All sections describe current behavior"
+      ],
+      "verification_method": "Section-by-section comparison during this audit",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "README.md",
+          "detail": "Tool examples §8-§18 verified against live responses — accurate"
+        },
+        {
+          "type": "source",
+          "path": "README.md §1 line ~74, §16 line ~868",
+          "detail": "'No frontend' claims contradict the existing dashboard"
+        },
+        {
+          "type": "source",
+          "path": "README.md §5, §19",
+          "detail": "Mock-data fallback claims contradict App.tsx 'no mock fallback'"
+        },
+        {
+          "type": "source",
+          "path": "README.md §19 adapter table",
+          "detail": "'400 bad input' — schema-invalid args actually return 200 + isError (body 400 only for malformed JSON)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Correct the four stale passages; no contract changes needed."
+    },
+    {
+      "id": "DOC-02",
+      "name": "Frontend README accuracy",
+      "description": "frontend/README.md still documents the deleted Node proxy shim and :3001 flow.",
+      "category": "docs",
+      "priority": "medium",
+      "status": "partial",
+      "implementation": "partial",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Architecture section matches Vite -> adapter :8001 -> MCP :8000"
+      ],
+      "verification_method": "Comparison with vite.config.ts and git status",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/README.md",
+          "detail": "documents proxy-server.cjs (deleted in working tree), port 3001, '/api/mcp -> Node shim' — all stale"
+        },
+        {
+          "type": "source",
+          "path": "frontend/vite.config.ts",
+          "detail": "actual: '/api' -> http://127.0.0.1:8001 (adapter)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Rewrite the architecture/startup sections of frontend/README.md to match the adapter-based flow."
+    },
+    {
+      "id": "DOC-03",
+      "name": "Data contract conformance audit",
+      "description": "docs/data-contract.md (1147 lines) schemas vs actual tool input/output shapes, section by section.",
+      "category": "docs",
+      "priority": "medium",
+      "status": "needs_verification",
+      "implementation": "complete",
+      "verification": "pending",
+      "acceptance_criteria": [
+        "Every documented schema matches the corresponding live tool input/output"
+      ],
+      "verification_method": "Section-by-section diff of contract vs live responses (not completed in this pass — spot checks only)",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "docs/data-contract.md",
+          "detail": "Present and substantial; sections 1-10 + open questions read; spot-checked triage/schedule outputs against README examples which matched"
+        },
+        {
+          "type": "live_api",
+          "detail": "Spot checks: triage summary, schedule groups/comparison, forecast codes all consistent with documented shapes",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Run a full section-by-section conformance pass (or record spot-check scope as accepted)."
+    },
+    {
+      "id": "DOC-04",
+      "name": "Demo runbook accuracy",
+      "description": "DEMO_RUNBOOK.md commands and expected outputs match reality.",
+      "category": "docs",
+      "priority": "high",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Startup commands work",
+        "Every documented expectation verified live"
+      ],
+      "verification_method": "Claim-by-claim live verification",
+      "evidence": [
+        {
+          "type": "live_api",
+          "detail": "§3 triage summary, §3 simulation lists, §4 comparison outcome, §5 schedule numbers (9.0 duration_units, groups 1/9/0/0, 5 layers, critical path), §6 read-only re-check — all matched exactly",
+          "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "DEMO_RUNBOOK.md",
+          "detail": "untracked new file; accurate"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "None — verified."
+    },
+    {
+      "id": "DOC-05",
+      "name": "Inline architecture comment accuracy",
+      "description": "mcpClient.ts header describes a direct-to-:8000 proxy flow that no longer exists.",
+      "category": "docs",
+      "priority": "low",
+      "status": "partial",
+      "implementation": "partial",
+      "verification": "verified",
+      "acceptance_criteria": [
+        "Header comment matches adapter architecture"
+      ],
+      "verification_method": "Comment vs vite.config.ts comparison",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts header comment",
+          "detail": "claims '/api/mcp forwards to the Python MCP server at 127.0.0.1:8000'; actual flow is Vite /api -> adapter :8001 -> MCP :8000 (the comment also still mentions a 'production Express/FastAPI adapter' as future work though the adapter exists)"
+        }
+      ],
+      "dependencies": [],
+      "next_action": "Update the file header comment (5 lines)."
+    },
+    {
+      "id": "REPO-01",
+      "name": "Commit pending working-tree changes",
+      "description": "55 changed/untracked files (frontend, backend, tests, docs, progress file) are uncommitted since a71e319; work is at risk.",
+      "category": "repo",
+      "priority": "high",
+      "status": "blocked",
+      "implementation": "not_started",
+      "verification": "not_applicable",
+      "acceptance_criteria": [
+        "Changes reviewed and committed with authorization (or explicitly deferred with a note)"
+      ],
+      "verification_method": "git status inspection",
+      "evidence": [
+        {
+          "type": "source",
+          "path": "git status --short",
+          "detail": "55 entries: modified README/docs/frontend/backend/tests + untracked adapter.py, assistant/, client.py, scheduler.py, ChatPanel, ScheduleView, DEMO_RUNBOOK.md, project_progress.json, tests..."
+        },
+        {
+          "type": "source",
+          "path": "git log -1",
+          "detail": "a71e319 'frontend first look' 2026-10-18"
+        }
+      ],
+      "dependencies": [
+        "User authorization required"
+      ],
+      "next_action": "Request explicit authorization to commit, then commit in logical groups (this audit did NOT commit or push)."
+    }
+  ],
+  "release_readiness": {
+    "status": "demo_ready_for_readonly_workflows__not_release_complete",
+    "verified": [
+      "3-process startup",
+      "live tool registry (11)",
+      "full disruption->triage->alternatives->compare->schedule workflow",
+      "error paths",
+      "offline behavior",
+      "read-only guarantee",
+      "backend test suite",
+      "frontend build/type/lint"
+    ],
+    "not_verified": [
+      "any browser-rendered page",
+      "responsive layouts at 5 widths",
+      "UI interactions",
+      "Bedrock provider live call"
+    ],
+    "blocked": [
+      "PRD absent -> strict requirements audit",
+      "write-side scope decision",
+      "browser unavailable -> visual QA"
+    ]
+  },
+  "known_limitations": [
+    "Read-only by design: no commit/apply/approval tool exists; scope decision pending (PRD-02).",
+    "No calendar scheduling: relative duration_units only (documented scope, PRD-04).",
+    "Four fixed in-process fixtures; no persistence (documented scope, PRD-03).",
+    "No auth; localhost only (documented scope, PRD-05).",
+    "Substitutes: no shipped fixture declares metadata.substitutes (engine tested with synthesized data).",
+    "Bedrock provider unverified against a real model (ASST-11).",
+    "No frontend test runner configured (FE-18, TEST-11).",
+    "Assistant offline reply keeps default intent label 'help' (cosmetic).",
+    "Bundle 893 kB with vite chunk-size warning (non-blocking).",
+    "Browser-dependent verification entirely outstanding (TEST-12/13, UI-04/13/14)."
+  ],
+  "blockers": [
+    {
+      "id": "B1",
+      "severity": "critical",
+      "task_ids": [
+        "PRD-01",
+        "PRD-02"
+      ],
+      "description": "PRD document is not in the repository: strict requirements audit and write-side scope determination cannot be completed.",
+      "needed": "Provide the PRD (or requirement list) and a product decision on approval/commit workflow."
+    },
+    {
+      "id": "B2",
+      "severity": "high",
+      "task_ids": [
+        "TEST-12",
+        "TEST-13",
+        "UI-04",
+        "UI-13",
+        "UI-14"
+      ],
+      "description": "No desktop browser connected to the session: no page can be rendered, interacted with, or screenshotted.",
+      "needed": "Connect a desktop browser (or run a manual walkthrough) to complete visual/functional UI verification."
+    },
+    {
+      "id": "B3",
+      "severity": "high",
+      "task_ids": [
+        "REPO-01"
+      ],
+      "description": "55 uncommitted file changes since a71e319 — significant work at risk.",
+      "needed": "Explicit authorization to commit (audit did not commit)."
+    },
+    {
+      "id": "B4",
+      "severity": "medium",
+      "task_ids": [
+        "FE-18",
+        "TEST-11"
+      ],
+      "description": "No frontend automated test runner; frontend test coverage cannot be claimed.",
+      "needed": "Scope decision: add Vitest or record tests as out of scope."
+    },
+    {
+      "id": "B5",
+      "severity": "low",
+      "task_ids": [
+        "ASST-11"
+      ],
+      "description": "Bedrock provider requires AWS credentials to verify.",
+      "needed": "Credentials + model id, or mark out of scope."
+    }
+  ],
+  "next_recommended_actions": [
+    "1. Provide the PRD (unblocks PRD-01/PRD-02 — the only critical blocker to a compliance claim).",
+    "2. Connect a desktop browser and run the visual/responsive pass (unblocks 8 tasks: TEST-12, TEST-13, UI-04, UI-13, UI-14 + pending FE/UI pages).",
+    "3. Authorize a commit of the 55 pending changes in logical groups (REPO-01) — work is at risk until then.",
+    "4. Fix stale docs: README §1/§5/§16/§19, frontend/README.md architecture, mcpClient.ts header (DOC-01/02/05, DEMO-17).",
+    "5. Decide frontend test scope (FE-18/TEST-11) and the commit/approval product question (PRD-02).",
+    "6. Low priority: page title (UI-15), bundle code-splitting (FE-15 note), Bedrock live check (ASST-11), data-contract section audit (DOC-03)."
+  ],
+  "agents": {
+    "person_3_scheduler": {
+      "status": "complete",
+      "objective": "Implement the recovery and scheduling engine",
+      "current_task": null,
+      "completed_tasks": [
+        "Scheduler implementation complete (src/rippleback/scheduler.py exists and is comprehensive)",
+        "generate_recovery_schedule function implemented with all required features",
+        "MCP scheduling tool registered in server.py as generate_recovery_schedule",
+        "All 18 scheduler unit tests pass"
+      ],
+      "remaining_tasks": [],
+      "blocked_by": [],
+      "owned_paths": [
+        "src/rippleback/scheduler.py",
+        "tests/test_scheduler.py"
+      ],
+      "shared_paths": [
+        "src/rippleback/server.py",
+        "README.md",
+        "docs/data-contract.md"
+      ],
+      "last_verified_commit": "a71e319",
+      "last_test_result": {
+        "timestamp": "2025-10-19T09:53:30-07:00",
+        "command": ".venv/bin/python -m pytest tests/test_scheduler.py -v",
+        "exit_code": 0,
+        "summary": "18 passed",
+        "tests_run": 18,
+        "passed": 18,
+        "failed": 0
+      }
+    },
+    "person_4_mcp_client": {
+      "status": "complete",
+      "objective": "Implement or complete the genuine MCP client and conversational assistant",
+      "current_task": null,
+      "completed_tasks": [
+        "Genuine MCP client implemented (src/rippleback/client.py using official MCP SDK with Streamable HTTP)",
+        "Assistant orchestrator implemented (src/rippleback/assistant/orchestrator.py) with dynamic tool discovery",
+        "Assistant components complete (intents, explain, providers)",
+        "Frontend MCP client exists (frontend/src/api/mcpClient.ts) with dynamic tool discovery via listTools",
+        "ChatPanel component exists with tool trace rendering",
+        "Assistant client exists for backend adapter communication",
+        "All assistant/client/adapter tests pass (60 passed)",
+        "End-to-end schedule workflow verified through genuine MCP live-server test (new test added)"
+      ],
+      "remaining_tasks": [],
+      "blocked_by": [],
+      "owned_paths": [
+        "frontend/api/mcpClient.ts"
+      ],
+      "shared_paths": [
+        "src/rippleback/server.py",
+        "README.md",
+        "frontend/",
+        "tests/"
+      ],
+      "last_verified_commit": "a71e319",
+      "last_test_result": {
+        "timestamp": "2025-10-19T09:58:00-07:00",
+        "command": ".venv/bin/python -m pytest tests/test_assistant.py -k end_to_end -q",
+        "exit_code": 0,
+        "summary": "3 passed (includes new live-server schedule-workflow E2E)",
+        "tests_run": 3,
+        "passed": 3,
+        "failed": 0
+      }
+    }
+  },
+  "verification": {
+    "baseline_tests": {
+      "timestamp": "2025-10-19T09:54:15-07:00",
+      "backend_scheduler": "18/18 passed",
+      "integration_mcp": "41/41 passed",
+      "assistant_client_adapter": "60/60 passed"
+    },
+    "latest_backend_tests": {
+      "timestamp": "2025-10-19T08:38:00-07:00",
+      "command": ".venv/bin/python -m pytest tests/ -q",
+      "exit_code": 0,
+      "summary": "504 passed in 3.74s (full backend suite, includes unit, integration, and live-server MCP tests)"
+    },
+    "latest_frontend_tests": {
+      "timestamp": "2025-10-19T08:38:00-07:00",
+      "note": "No frontend test runner is configured in frontend/package.json (no vitest/jest script).",
+      "type_check": "npx tsc -b passed (exit 0)",
+      "lint": "npx oxlint passed (exit 0, 1 pre-existing react/set-state-in-effect warning in MCPInspector.tsx)"
+    },
+    "production_build": {
+      "timestamp": "2025-10-19T08:05:00-07:00",
+      "command": "cd frontend && npm run build",
+      "exit_code": 0,
+      "summary": "tsc -b && vite build succeeded; dist/ emitted",
+      "warnings": "non-blocking vite chunk-size warning (>500 kB)"
+    },
+    "demo_readiness": {
+      "timestamp": "2025-10-19T09:15:00-07:00",
+      "demo_runbook": "DEMO_RUNBOOK.md",
+      "startup_verified": {
+        "mcp_server": "http://127.0.0.1:8000/mcp (healthy, responds to initialize)",
+        "adapter": "http://127.0.0.1:8001 (healthy)",
+        "vite": "http://localhost:5173 (serves app, proxy /api works)",
+        "proxy_health": "mcp connected, 11 tools, deterministic provider"
+      },
+      "browser_verification": {
+        "performed": false,
+        "method": "Programmatic only (no desktop browser connected)",
+        "programmatic_checks": [
+          "all three processes start; ports 8000/8001/5173 free/serving",
+          "proxied health and tools endpoints correct",
+          "assistant chat returns tool trace; schedule/generate_recovery_schedule returns structured results with relative units and simulated=true",
+          "read-only: plan version 1, disruptions [] unchanged",
+          "offline behavior honest (503 on tool, assistant honest when server down, frontend still serves)"
+        ]
+      }
+    },
+    "audit_runs": {
+      "timestamp": "2026-10-19T19:08:40+05:30",
+      "audit_id": "master-audit-2026-10-19",
+      "commands": [
+        {
+          "command": ".venv/bin/python -m pytest tests/ -q",
+          "exit_code": 0,
+          "result": "504 passed in 3.62s (re-run: 504 passed in 3.72s)"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+          "exit_code": 0,
+          "result": "41 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
+          "exit_code": 0,
+          "result": "29 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
+          "exit_code": 0,
+          "result": "32 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
+          "exit_code": 0,
+          "result": "18 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
+          "exit_code": 0,
+          "result": "20 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
+          "exit_code": 0,
+          "result": "191 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_triage.py -q",
+          "exit_code": 0,
+          "result": "22 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_graph.py tests/test_critical_path.py -q",
+          "exit_code": 0,
+          "result": "25 passed"
+        },
+        {
+          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
+          "exit_code": 0,
+          "result": "126 passed"
+        },
+        {
+          "command": "cd frontend && npx tsc -b",
+          "exit_code": 0,
+          "result": "no diagnostics"
+        },
+        {
+          "command": "cd frontend && npm run lint",
+          "exit_code": 0,
+          "result": "oxlint 1.88.0, no diagnostics"
+        },
+        {
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "tsc -b && vite build; dist/ emitted; chunk-size warning (>500 kB)"
+        },
+        {
+          "command": "curl live workflow via http://localhost:5173/api/*",
+          "exit_code": 0,
+          "result": "health 11 tools connected; 11/11 tools invoked; 5 error paths verified; read-only re-check passed"
+        }
+      ],
+      "browser_verification": {
+        "performed": false,
+        "reason": "browser.tabs.list -> 'No desktop browser is connected to this session' (browser.disconnected)",
+        "impact": "Category UI/UX responsive + visual checks and browser functional tests recorded as blocked (TEST-12, TEST-13, UI-04, UI-13, UI-14)."
+      },
+      "frontend_tests": {
+        "configured": false,
+        "note": "No test runner in frontend/package.json — no frontend test results exist to report."
+      }
+    },
+    "last_verified_test_results": {
+      "timestamp": "2026-10-19T19:08:40+05:30",
+      "backend_full_suite": {
+        "command": ".venv/bin/python -m pytest tests/ -q",
+        "exit_code": 0,
+        "passed": 504,
+        "failed": 0,
+        "skipped": 0,
+        "summary": "504 passed in 3.62s",
+        "current": true
+      },
+      "integration_mcp": {
+        "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+        "exit_code": 0,
+        "passed": 41,
+        "failed": 0,
+        "summary": "41 passed",
+        "current": true
+      },
+      "client_adapter": {
+        "exit_code": 0,
+        "passed": 29,
+        "failed": 0,
+        "summary": "29 passed",
+        "current": true
+      },
+      "assistant": {
+        "exit_code": 0,
+        "passed": 32,
+        "failed": 0,
+        "summary": "32 passed",
+        "current": true
+      },
+      "scheduler": {
+        "exit_code": 0,
+        "passed": 18,
+        "failed": 0,
+        "summary": "18 passed",
+        "current": true
+      },
+      "engine_suites": {
+        "exit_code": 0,
+        "passed": 384,
+        "failed": 0,
+        "summary": "191+20+22+25+126 passed",
+        "current": true
+      },
+      "warnings": [
+        "vite chunk-size warning (>500 kB) — non-blocking"
+      ]
+    }
+  },
+  "last_verified_test_results": {
+    "timestamp": "2026-10-19T19:08:40+05:30",
+    "backend_full_suite": {
+      "command": ".venv/bin/python -m pytest tests/ -q",
+      "exit_code": 0,
+      "passed": 504,
+      "failed": 0,
+      "skipped": 0,
+      "summary": "504 passed in 3.62s",
+      "current": true
+    },
+    "integration_mcp": {
+      "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
+      "exit_code": 0,
+      "passed": 41,
+      "failed": 0,
+      "summary": "41 passed",
+      "current": true
+    },
+    "client_adapter": {
+      "exit_code": 0,
+      "passed": 29,
+      "failed": 0,
+      "summary": "29 passed",
+      "current": true
+    },
+    "assistant": {
+      "exit_code": 0,
+      "passed": 32,
+      "failed": 0,
+      "summary": "32 passed",
+      "current": true
+    },
+    "scheduler": {
+      "exit_code": 0,
+      "passed": 18,
+      "failed": 0,
+      "summary": "18 passed",
+      "current": true
+    },
+    "engine_suites": {
+      "exit_code": 0,
+      "passed": 384,
+      "failed": 0,
+      "summary": "191+20+22+25+126 passed",
+      "current": true
+    },
+    "warnings": [
+      "vite chunk-size warning (>500 kB) — non-blocking"
+    ]
+  },
+  "acceptance_criteria": {
+    "scheduler_implemented": true,
+    "scheduler_tests_pass": true,
+    "scheduling_mcp_tool_registered": true,
+    "mcp_client_implemented": true,
+    "dynamic_tool_discovery_verified": true,
+    "assistant_workflows_verified": true,
+    "end_to_end_workflow_verified": true,
+    "existing_tests_preserved": true,
+    "production_build_passed": true,
+    "backend_suite_passed": true,
+    "read_only_behavior_verified": true,
+    "running_application_verified_programmatically": true,
+    "startup_scripts_working": true,
+    "demo_runbook_created": true,
+    "frontend_visual_verification": false,
+    "prd_commit_feature_implemented": false,
+    "master_checklist_created": true,
+    "all_tests_re_run_this_audit": true,
+    "live_demo_workflow_verified": true,
+    "error_paths_verified": true,
+    "offline_behavior_verified": true,
+    "json_progress_file_validated": true,
+    "browser_functional_testing": false,
+    "strict_prd_audit_completed": false
+  },
+  "unresolved_issues": [
+    {
+      "id": "prd_commit_tool_missing",
+      "severity": "medium",
+      "description": "PRD specifies human approval, commit_recovery_plan, applied-vs-failed reporting — not implemented (read-only by design; README §16 'No writes'). Product-level decision needed.",
+      "owner": "product/team_decision",
+      "status": "open"
+    },
+    {
+      "id": "prd_pdf_absent",
+      "severity": "medium",
+      "description": "PRD PDF not found on disk — cannot certify full section-level compliance.",
+      "owner": "user",
+      "status": "open"
+    },
+    {
+      "id": "frontend_visual_unverified",
+      "severity": "low",
+      "description": "No desktop browser connected to this session (re-confirmed by master audit via browser.disconnected). All page rendering, interaction, responsive, and screenshot checks remain manual — tracked as TEST-12/TEST-13/UI-04/UI-13/UI-14.",
+      "owner": "qa/manual",
+      "status": "open"
+    },
+    {
+      "id": "frontend_test_runner_missing",
+      "severity": "low",
+      "description": "No frontend automated test runner configured.",
+      "owner": "frontend",
+      "status": "open"
+    },
+    {
+      "id": "readme_stale_claims",
+      "severity": "medium",
+      "description": "Root README claims 'no frontend' (§1/§16) and a mock-data fallback (§5/§19) that no longer exist; adapter error-status wording (§19) is also imprecise. Tracked as DOC-01/DEMO-17.",
+      "owner": "docs",
+      "status": "open"
+    },
+    {
+      "id": "frontend_readme_stale_architecture",
+      "severity": "medium",
+      "description": "frontend/README.md documents the deleted proxy-server.cjs Node shim and port 3001; actual flow is Vite /api -> adapter :8001. Tracked as DOC-02.",
+      "owner": "docs",
+      "status": "open"
+    },
+    {
+      "id": "mcpclient_header_stale",
+      "severity": "low",
+      "description": "frontend/src/api/mcpClient.ts header comment describes forwarding directly to :8000. Tracked as DOC-05.",
+      "owner": "frontend",
+      "status": "open"
+    },
+    {
+      "id": "uncommitted_work",
+      "severity": "high",
+      "description": "55 modified/untracked files since a71e319 (adapter, client, assistant, scheduler, new frontend views, tests, runbook, progress file) are uncommitted. Risk of loss; commit requires explicit authorization. Tracked as REPO-01.",
+      "owner": "user",
+      "status": "open"
+    },
+    {
+      "id": "bedrock_unverified",
+      "severity": "low",
+      "description": "Bedrock provider implemented but never invoked with real credentials in this environment; only fallback paths tested. Tracked as ASST-11.",
+      "owner": "assistant",
+      "status": "open"
+    },
+    {
+      "id": "assistant_offline_intent_label",
+      "severity": "low",
+      "description": "Offline early-return leaves the reply's intent field at the default 'help' label even though the message was a domain question (reply content itself is honest). Cosmetic. Tracked in known_limitations.",
+      "owner": "assistant",
+      "status": "open"
+    },
+    {
+      "id": "html_title_generic",
+      "severity": "low",
+      "description": "frontend/index.html <title> is 'frontend' rather than 'RippleBack'. Tracked as UI-15.",
+      "owner": "frontend",
+      "status": "open"
+    },
+    {
+      "id": "frontend_chunk_size",
+      "severity": "low",
+      "description": "Production bundle 893 kB (>500 kB warning) — consider code-splitting. Non-blocking. Tracked as FE-15 note.",
+      "owner": "frontend",
+      "status": "open"
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2025-10-19T09:52:00-07:00",
+      "decider": "coordination_agent",
+      "decision": "Established shared project state as single source of truth per instructions. Do not overwrite existing work."
+    },
+    {
+      "date": "2025-10-19T09:53:30-07:00",
+      "decider": "coordination_agent",
+      "decision": "Verified scheduler is fully implemented and tested (18/18 pass). Verified MCP client, assistant, and frontend components exist with dynamic tool discovery."
+    },
+    {
+      "date": "2025-10-19T08:40:00-07:00",
+      "decider": "integration_verification",
+      "decision": "Final integration phase: all reported results reconfirmed from scratch (504 backend tests, production build, tsc, lint, live MCP end-to-end demo, running-app checks). PRD PDF absent from disk; audit done against README/documented requirements. commit_recovery_plan/human-approval identified as product-level gap, NOT implemented per scope rules."
+    },
+    {
+      "date": "2025-10-19T09:15:00-07:00",
+      "decider": "demo_readiness",
+      "decision": "Prepared application for demo: verified all three processes (server/adapter/vite) start reliably and stack is healthy via proxy; created detailed DEMO_RUNBOOK.md; offline behavior and read-only guarantees confirmed; browser visual checks remain manual (no desktop browser connected)."
+    },
+    {
+      "date": "2026-10-19T19:08:40+05:30",
+      "decider": "master_audit",
+      "decision": "Master completion audit: 122-task evidence-backed checklist created; all backend suites re-run (504 backend tests pass), full demo workflow executed live through the Vite proxy (11 tools, read-only re-verified), error paths and offline behavior tested. Frontend build/tsc/lint pass. Browser-based visual verification remains blocked (no desktop browser connected). PRD still absent from the repository: strict requirements audit recorded as blocked. Stale README/frontend-README/mcpClient header claims documented as DOC-01/02/05. No commits or pushes were made."
+    }
+  ],
+  "change_log": [
+    {
+      "timestamp": "2025-10-19T08:05:00-07:00",
+      "event": "production_build_verified",
+      "description": "Build passed"
+    },
+    {
+      "timestamp": "2025-10-19T08:40:00-07:00",
+      "event": "final_regression_and_prd_audit",
+      "description": "504 tests green; full integration verified"
+    },
+    {
+      "timestamp": "2025-10-19T09:15:00-07:00",
+      "event": "demo_readiness_pass",
+      "description": "Startup verified on all ports; proxy stack healthy; DEMO_RUNBOOK.md created; read-only/offline confirmed programmatically; browser checks manual (not connected)",
+      "files_changed": [
+        "DEMO_RUNBOOK.md",
+        "project_progress.json"
+      ]
+    },
+    {
+      "timestamp": "2026-10-19T19:08:40+05:30",
+      "event": "master_completion_audit",
+      "description": "Full audit executed: 122 tasks across 10 categories; live MCP workflow + error paths verified; test suites re-run; project_progress.json extended to v2 schema (history preserved).",
+      "files_changed": [
+        "project_progress.json"
+      ]
+    }
+  ],
+  "files_changed_this_phase": [
+    "project_progress.json"
+  ],
+  "next_recommended_action": "Demo-ready for read-only workflows (verified live end-to-end). To finish: provide the PRD, connect a browser for visual QA, and authorize committing the 55 pending changes."
+}

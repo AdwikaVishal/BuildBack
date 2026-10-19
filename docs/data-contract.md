@@ -19,7 +19,8 @@ workload rebalancing for staffed scenarios (§7). Phase 6 adds blocker triage (�
 (§9). Milestone 6 (Person 3 engine integration) adds delivery forecasts (§10),
 hard-constraint validation (§11), option scoring/ranking (§12), option
 comparison with forecasts (§13), and explicitly declared substitute candidates
-(§14), each also exposed as a read-only MCP tool. All of §4–§14 are read-only and return separate result objects. §7 adds
+(§14), each also exposed as a read-only MCP tool; recovery scheduling adds a
+relative-duration scheduling engine (§14.1). All of §4–§14 are read-only and return separate result objects. §7 adds
 optional plan fields (`resources`, entity `assignee`/`effort`) and §9 adds
 optional graph fields (entity `duration`/`metadata`, dependency `dependency_type`,
 constraint `parameters`) but does not change any required field.
@@ -989,6 +990,71 @@ Each option (keys in order): `option_id`, `explanation`,
   yields identical output.
 - A malformed `metadata.substitutes` value (not a list, or a non-string entry)
   and an unknown `entity_id` are structured errors (`is_error: true`).
+
+### 14.1. Recovery Scheduling Engine (`scheduler.py`, `generate_recovery_schedule`)
+
+A **relative-duration** scheduling engine for recovery scenarios. Given a
+scenario, an optional recovery change set (the §3 `apply_changes` shape) or a
+§5 legacy `option_id`, and an optional `disrupted_entity_id`, it reports,
+purely and deterministically and without any calendar:
+
+- **`schedule`** — one entry per entity (including blocked ones, for
+  transparency), in plan order, each with:
+  - `entity_id`, `name`, `status`, `triage_state` (when triage ran),
+  - `group` — `completed` (`done` entities are complete at t=0 and are never
+    restarted) | `ready_now` | `waiting` (an unfinished hard prerequisite is
+    waiting or blocked) | `blocked` (committed `blocked`, or triage
+    `blocked`/`external`),
+  - `layer` — parallel-execution layer (1-based) for `ready_now` entries
+    (else `null`),
+  - `duration`, `earliest_start`, `earliest_finish`, `waiting_time` — all in
+    the report's `unit`, **relative offsets from the moment of analysis**, and
+    all `null` unless every entity declares a duration (below),
+  - `hard_prerequisites` (from `requires_completion`/`requires_arrival_by`
+    edges — the only ordering constraint), `soft_prerequisites`
+    (`benefits_from` edges never constrain start times),
+  - `on_critical_path`, `reason` (human-readable).
+- **`groups`** — entity ids per group; **`execution_order`** — a
+  deterministic topological order of the `ready_now` tasks (lexicographic
+  tie-breaking within layers); **`parallel_groups`** — `{layer, entity_ids}`.
+- **`critical_path`** — the existing §10 structural longest-hard-chain report,
+  unchanged (it counts completed tasks and is not a time forecast).
+- **`completion`** — `duration` (max earliest finish over schedulable
+  unfinished work), `unit`, `covers_all_tasks`, `excluded_tasks` (blocked or
+  waiting), `explanation`.
+
+**Durations are never invented.** Durations come from entity `duration`
+fields (or explicit caller overrides in `scheduling_config["durations"]`).
+When any entity lacks a duration the report is ordering-only: `outcome =
+"insufficient_duration_data"`, start/finish/completion are `null`, and
+`missing_data` names the entities. `scheduling_config["duration_unit"]` is a
+label; only when it is explicitly `"minutes"` are §11
+`required_buffer_minutes` arrival buffers added to start times (otherwise they
+are preserved, reported, and deliberately not mixed into unitless durations).
+
+**Recovery comparison.** With a change set, the report contains `baseline`
+(the committed plan's schedule under the same durations and the disruption's
+pre-change triage states) and `comparison`: both execution orders and
+critical paths, `completion_delta` **only when both sides have the same valid
+unit and durations** (`comparable` + `incomparable_reason` otherwise),
+per-task `task_offset_changes`, `newly_blocked`/`newly_unblocked`,
+parallelism changes, and `baseline_excluded_tasks`/`proposed_excluded_tasks`
+(so a delta over differing work sets is always visible).
+
+**Infeasibility.** A proposal that creates a cycle, a dangling reference, or a
+hard-constraint violation (the §11 validator is reused, not reimplemented) is
+reported in-band: `feasible = false`, `outcome = "infeasible"`, `error =
+{code, message}`, `violations` (stable §11 codes), and `null` schedule,
+execution order, completion, baseline, and comparison — an infeasible proposal
+is never ordered, ranked, or presented as a schedule.
+
+**Non-goals (honest limits).** No calendar scheduling (no start date, timezone,
+working days, hours, or holidays exist in the data — `t = 0` is the moment of
+analysis and every reported time is a relative offset); no resource-constrained
+scheduling (`work_units` are abstract capacity with no time dimension; parallel
+groups assume unlimited parallel execution subject only to hard dependencies);
+no deadline optimization or resource leveling. The engine never mutates the
+committed plan, its statuses, or its version.
 
 ---
 
