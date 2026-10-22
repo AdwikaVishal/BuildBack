@@ -288,6 +288,9 @@ async def chat(request: Request) -> JSONResponse:
 
 async def sync_now(request: Request) -> JSONResponse:
     """Run one PM sync + PagerDuty ingest pass (blocking; offloaded to a thread)."""
+    reason = write_guard_reason("/api/sync", is_write=True, headers=request.headers)
+    if reason is not None:
+        return _json_error(reason, status_code=403, tool="/api/sync")
     from rippleback import sync as sync_module
 
     try:
@@ -299,6 +302,9 @@ async def sync_now(request: Request) -> JSONResponse:
 
 async def import_substitutes(request: Request) -> JSONResponse:
     """Import a substitute catalog from a YAML file (path relative to cwd)."""
+    reason = write_guard_reason("/api/substitutes/import", is_write=True, headers=request.headers)
+    if reason is not None:
+        return _json_error(reason, status_code=403, tool="/api/substitutes/import")
     try:
         body = await request.json()
     except Exception:

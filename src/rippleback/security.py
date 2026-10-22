@@ -116,11 +116,11 @@ def write_guard_reason(tool_or_route: str, *, is_write: bool, headers: Any = Non
             "host but RIPPLEBACK_API_KEY is not set; set RIPPLEBACK_API_KEY or "
             "bind to 127.0.0.1"
         )
+    if settings.api_key_required and not check_api_key(extract_bearer(headers or {})):
+        return "invalid or missing API key (Authorization: Bearer <RIPPLEBACK_API_KEY>)"
     if not settings.writes_enabled:
         return (
             "writes are disabled; set RIPPLEBACK_WRITES_ENABLED=true to allow "
             f"mutating calls to {tool_or_route!r}"
         )
-    if settings.api_key_required and not check_api_key(extract_bearer(headers or {})):
-        return "invalid or missing API key (Authorization: Bearer <RIPPLEBACK_API_KEY>)"
     return None

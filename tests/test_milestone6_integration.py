@@ -86,6 +86,7 @@ GATED_TOOLS = {
         "option_id",
         "changes",
         "kind",
+        "ctx",
     ],
     "record_disruption": [
         "scenario_id",
@@ -96,8 +97,9 @@ GATED_TOOLS = {
         "delay_minutes",
         "idempotency_key",
         "actor",
+        "ctx",
     ],
-    "resolve_disruption": ["disruption_id", "idempotency_key", "actor"],
+    "resolve_disruption": ["disruption_id", "idempotency_key", "actor", "ctx"],
     "commit_recovery_plan": [
         "scenario_id",
         "expected_version",
@@ -106,6 +108,7 @@ GATED_TOOLS = {
         "changes",
         "idempotency_key",
         "actor",
+        "ctx",
     ],
     "commit_reassignment": [
         "scenario_id",
@@ -114,6 +117,7 @@ GATED_TOOLS = {
         "changes",
         "idempotency_key",
         "actor",
+        "ctx",
     ],
 }
 

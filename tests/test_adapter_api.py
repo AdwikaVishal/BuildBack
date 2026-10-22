@@ -218,6 +218,7 @@ class TestAuth:
 
     def test_mutating_route_accepts_the_key(self, client, monkeypatch) -> None:
         monkeypatch.setenv("RIPPLEBACK_API_KEY", "correct-key")
+        monkeypatch.setenv("RIPPLEBACK_WRITES_ENABLED", "true")
         monkeypatch.setattr(
             "rippleback.sync.sync_all", lambda: {"ok": True}
         )
@@ -399,7 +400,8 @@ class TestCommitFlow:
 
 
 class TestSubstitutesImport:
-    def test_imports_a_catalog_file(self, client, committed_scenario, tmp_path) -> None:
+    def test_imports_a_catalog_file(self, client, committed_scenario, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("RIPPLEBACK_WRITES_ENABLED", "true")
         sid = committed_scenario["scenario_id"]
         path = tmp_path / "subs.yaml"
         path.write_text(SAMPLE_YAML.format(sid=sid), encoding="utf-8")
@@ -407,19 +409,22 @@ class TestSubstitutesImport:
         assert response.status_code == 200
         assert response.json()["written"][sid] == 1
 
-    def test_unknown_entity_is_rejected(self, client, committed_scenario, tmp_path) -> None:
+    def test_unknown_entity_is_rejected(self, client, committed_scenario, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("RIPPLEBACK_WRITES_ENABLED", "true")
         path = tmp_path / "bad.yaml"
         path.write_text(f"{committed_scenario['scenario_id']}:\n  ghost:\n    - b\n", encoding="utf-8")
         response = client.post("/api/substitutes/import", json={"path": str(path)})
         assert response.status_code in (422, 500)
 
-    def test_missing_file_is_422(self, client, tmp_path) -> None:
+    def test_missing_file_is_422(self, client, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("RIPPLEBACK_WRITES_ENABLED", "true")
         response = client.post(
             "/api/substitutes/import", json={"path": str(tmp_path / "absent.yaml")}
         )
         assert response.status_code == 422
 
-    def test_path_is_required(self, client) -> None:
+    def test_path_is_required(self, client, monkeypatch) -> None:
+        monkeypatch.setenv("RIPPLEBACK_WRITES_ENABLED", "true")
         assert client.post("/api/substitutes/import", json={}).status_code == 400
 
 

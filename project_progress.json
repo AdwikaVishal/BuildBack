@@ -1,58 +1,79 @@
 {
   "project": "RippleBack",
-  "repository": "/Users/shantanu/BuildBack",
+  "repository": "/Users/shantanu/BuildBack_New",
   "coordination_version": 2,
-  "schema_note": "v2: supersedes the v1 coordination schema. Preserved: agents, decisions, change_log, verification, unresolved_issues, acceptance_criteria. Added: audit, summary_metrics, categories, tasks (stable IDs), known_limitations, blockers, next_recommended_actions, last_verified_test_results.",
-  "last_updated": "2026-10-19T19:08:40+05:30",
-  "current_phase": "verified_demo_ready__visual_verification_and_prd_blocked",
-  "global_status": "demo_ready_with_open_blockers",
+  "schema_note": "v2.1 (2026-10-22): structure unchanged — no task added, removed, or renumbered (122 stable IDs preserved). Added top-level 'audit_history'; 'audit' now holds the current audit. Preserved: agents, decisions, change_log, verification, unresolved_issues, acceptance_criteria, known_limitations, blockers, next_recommended_actions, last_verified_test_results. Formulas and their denominators are unchanged.",
+  "last_updated": "2026-10-22T20:40:00+05:30",
+  "current_phase": "master_audit_complete__browser_verified__prd_blocked",
+  "global_status": "functionally_working__not_verified_for_release",
   "audit": {
-    "id": "master-audit-2026-10-19",
-    "timestamp": "2026-10-19T19:08:40+05:30",
-    "scope": "Master project completion audit (backend, MCP, assistant, frontend, UI/UX, testing, PRD, demo).",
+    "id": "master-audit-2026-10-22",
+    "timestamp": "2026-10-22T20:40:00+05:30",
+    "scope": "Full master audit of RippleBack: implementation status, backend/recovery engines, MCP server + client, local API adapter, database, AI assistant, frontend + browser behaviour, commit/approval workflow, integrations, security, full test execution, live end-to-end demo, and documentation reconciliation.",
+    "verdict": "FUNCTIONALLY WORKING, NOT VERIFIED FOR RELEASE",
     "evidence_hierarchy": [
+      "live behaviour observed in this audit (browser, HTTP, CLI, database)",
+      "automated tests executed in this audit",
       "source code and contracts",
-      "automated tests re-run in this audit",
-      "live integration/API tests",
       "documentation",
       "previous progress file",
       "prior claims"
     ],
+    "method": {
+      "read_only": "No application code was modified; no commit, push, branch, reset, clean or stash was performed; git tree remained clean (0 entries) for the whole audit.",
+      "isolation": "Three isolated stacks with separate SQLite DBs and ports (read-only :8000/:8001, write-enabled :8020/:8031, API-keyed :8040/:8041). All DB writes in this audit were to those throwaway files; no external system (Jira/Linear/GitHub/PagerDuty/Slack/SMTP) was contacted.",
+      "browser": "The session browser tool was unavailable (browser.disconnected), so a headless Chromium (Playwright, installed outside the repo) drove the real Vite app at http://localhost:5173. A browser WAS available and every UI claim below was observed, not inferred.",
+      "secrets": "No secret value was printed; only variable names appear in this file."
+    },
     "phases": {
-      "phase1_inspect": "complete — repo, README, data contract, progress file (v1), git tree read",
-      "phase2_checklist": "complete — 122 tasks with stable IDs and acceptance criteria",
-      "phase3_implementation_review": "complete for backend/MCP/assistant/frontend source; UI visual review blocked",
-      "phase4_verify": "complete — all test suites, build, tsc, lint, live workflow, error paths, offline path",
-      "phase5_ui_inspect": "blocked — no desktop browser connected",
-      "phase6_requirements": "blocked — PRD absent from repository",
-      "phase7_calculate": "complete — metrics computed from checklist",
-      "phase8_progress": "complete — project_progress.json updated (history preserved)",
-      "phase9_report": "complete — final report produced in session"
+      "phase1_repo_discovery": "complete — 145 tracked files, branch New_endpoints, HEAD b7f47fa ('finals'), clean tree, remote origin/AdwikaVishal/BuildBack.git",
+      "phase2_tracker_inventory": "complete — 122 task IDs across 10 categories inventoried; formulas read from the file itself",
+      "phase3_git_and_history": "complete — 106 files / 26810 insertions since a71e319, now committed at b7f47fa; tracked DB WAL/SHM contain schema DDL only",
+      "phase4_architecture_read": "complete — adapter 14 routes, MCP server 12 read + 5 write tools, assistant 13 intents, 6 engines, frontend 9 views",
+      "phase5_test_execution": "complete — .venv/bin/python -m pytest tests/ -q -> 659 passed in 8.39s (re-confirmed at audit close); all 25 per-file suites pass",
+      "phase6_endpoint_exercise": "complete — all 14 documented routes exercised live; GET /api/health -> 17 tools (12 read + 5 write)",
+      "phase7_readonly_guarantee": "complete — after a full read-only workflow all plan/audit/commit tables are empty; read tools never mutate",
+      "phase8_commit_workflow": "complete — dry-run -> confirm_token -> commit (v1->v2, status local_only) -> idempotent replay -> key reuse 400 -> stale version 409 -> token-binding 400 -> reassignment path; verified on the isolated write stack",
+      "phase9_assistant": "complete — 12 intent cases + PRD demo phrases; provider deterministic; honest Bedrock fallback; 3 adversarial prompts produced no write call",
+      "phase10_frontend_build": "complete — npm run build exit 0 (JS 893.81 kB / gzip 251.87 kB), npx tsc -b exit 0, npx oxlint src clean",
+      "phase11_browser_verification": "complete — headless Chromium walked all 9 views at 1440/1280/1024/768/390, no horizontal overflow, full disruption->triage->options->select->schedule->review flow, error state, assistant round-trip, MCP inspector",
+      "phase12_api_key_matrix": "complete — GET public; /api/mcp/tool read public by design; write 403 without/with-bad key, 200 with key; /api/commits, /api/sync, /api/substitutes/import 401 without key",
+      "phase13_security_review": "complete — two gate bypasses reproduced with live evidence (read-only route write; MCP server ignores the API key)",
+      "phase14_integration_review": "complete — sync/substitute/commit/audit routes exercised; sync false-success and 500-on-client-error defects recorded",
+      "phase15_data_contract_conformance": "complete — 12 contract sections diffed against live tool output; 1 genuine mismatch (§1 resources)",
+      "phase16_documentation_reconciliation": "complete — README, frontend/README, DEMO_RUNBOOK, docs/ENDPOINTS.md, docs/DECISIONS.md and inline comments compared against live behaviour",
+      "phase17_progress_update": "complete — this file updated (only file changed); backup kept outside the repo",
+      "phase18_metrics": "complete — implementation / verification / end-to-end / release metrics recomputed with this file's own formulas",
+      "phase19_report": "complete — 19-phase report with sections A–J and the release verdict"
     },
     "files_modified_by_audit": [
       "project_progress.json"
     ],
-    "commits_or_pushes_made": "none"
+    "commits_or_pushes_made": "none",
+    "backup": {
+      "path": "/private/var/folders/d9/2l__tx31251fjff54rhrt1bc0000gn/T/opencode/rbaudit/project_progress.json.bak-20261022-191010",
+      "note": "pre-edit copy kept outside the repository so the git tree stays clean"
+    }
   },
   "summary_metrics": {
     "total": 122,
     "by_status": {
-      "complete": 75,
-      "partial": 4,
+      "complete": 100,
+      "partial": 11,
       "in_progress": 0,
       "not_started": 3,
-      "blocked": 9,
-      "needs_verification": 27,
+      "blocked": 3,
+      "needs_verification": 1,
       "not_applicable": 4
     },
     "implementation_in_scope": 114,
-    "implementation_complete": 105,
-    "implementation_partial": 4,
-    "implementation_percent": 92.1,
-    "implementation_weighted_percent": 93.9,
-    "verification_requiring": 114,
-    "verification_verified": 79,
-    "verification_percent": 69.3
+    "implementation_complete": 106,
+    "implementation_partial": 5,
+    "implementation_percent": 93.0,
+    "implementation_weighted_percent": 95.2,
+    "verification_requiring": 115,
+    "verification_verified": 111,
+    "verification_percent": 96.5
   },
   "formulas": {
     "implementation_completion": "count(implementation == 'complete') / count(implementation != 'not_applicable') * 100",
@@ -65,8 +86,8 @@
     {
       "total": 19,
       "by_status": {
-        "complete": 19,
-        "partial": 0,
+        "complete": 18,
+        "partial": 1,
         "in_progress": 0,
         "not_started": 0,
         "blocked": 0,
@@ -87,8 +108,8 @@
     {
       "total": 14,
       "by_status": {
-        "complete": 14,
-        "partial": 0,
+        "complete": 13,
+        "partial": 1,
         "in_progress": 0,
         "not_started": 0,
         "blocked": 0,
@@ -109,8 +130,8 @@
     {
       "total": 13,
       "by_status": {
-        "complete": 12,
-        "partial": 0,
+        "complete": 9,
+        "partial": 3,
         "in_progress": 0,
         "not_started": 0,
         "blocked": 0,
@@ -131,12 +152,12 @@
     {
       "total": 18,
       "by_status": {
-        "complete": 4,
+        "complete": 17,
         "partial": 0,
         "in_progress": 0,
         "not_started": 1,
         "blocked": 0,
-        "needs_verification": 13,
+        "needs_verification": 0,
         "not_applicable": 0
       },
       "implementation_in_scope": 18,
@@ -145,20 +166,20 @@
       "implementation_percent": 94.4,
       "implementation_weighted_percent": 94.4,
       "verification_requiring": 17,
-      "verification_verified": 4,
-      "verification_percent": 23.5,
+      "verification_verified": 17,
+      "verification_percent": 100.0,
       "id": "frontend",
       "name": "Frontend functionality"
     },
     {
       "total": 15,
       "by_status": {
-        "complete": 1,
+        "complete": 14,
         "partial": 0,
         "in_progress": 0,
         "not_started": 1,
-        "blocked": 3,
-        "needs_verification": 10,
+        "blocked": 0,
+        "needs_verification": 0,
         "not_applicable": 0
       },
       "implementation_in_scope": 15,
@@ -167,19 +188,19 @@
       "implementation_percent": 93.3,
       "implementation_weighted_percent": 93.3,
       "verification_requiring": 14,
-      "verification_verified": 1,
-      "verification_percent": 7.1,
+      "verification_verified": 14,
+      "verification_percent": 100.0,
       "id": "ui_ux",
       "name": "UI/UX and observability"
     },
     {
       "total": 13,
       "by_status": {
-        "complete": 10,
+        "complete": 12,
         "partial": 0,
         "in_progress": 0,
         "not_started": 1,
-        "blocked": 2,
+        "blocked": 0,
         "needs_verification": 0,
         "not_applicable": 0
       },
@@ -189,8 +210,8 @@
       "implementation_percent": 90.9,
       "implementation_weighted_percent": 90.9,
       "verification_requiring": 12,
-      "verification_verified": 10,
-      "verification_percent": 83.3,
+      "verification_verified": 12,
+      "verification_percent": 100.0,
       "id": "testing",
       "name": "Testing and quality"
     },
@@ -207,9 +228,9 @@
       },
       "implementation_in_scope": 1,
       "implementation_complete": 0,
-      "implementation_partial": 0,
+      "implementation_partial": 1,
       "implementation_percent": 0.0,
-      "implementation_weighted_percent": 0.0,
+      "implementation_weighted_percent": 50.0,
       "verification_requiring": 3,
       "verification_verified": 0,
       "verification_percent": 0.0,
@@ -219,12 +240,12 @@
     {
       "total": 17,
       "by_status": {
-        "complete": 14,
+        "complete": 16,
         "partial": 1,
         "in_progress": 0,
         "not_started": 0,
         "blocked": 0,
-        "needs_verification": 2,
+        "needs_verification": 0,
         "not_applicable": 0
       },
       "implementation_in_scope": 17,
@@ -233,20 +254,20 @@
       "implementation_percent": 94.1,
       "implementation_weighted_percent": 97.1,
       "verification_requiring": 17,
-      "verification_verified": 15,
-      "verification_percent": 88.2,
+      "verification_verified": 17,
+      "verification_percent": 100.0,
       "id": "demo",
       "name": "Demo readiness"
     },
     {
       "total": 5,
       "by_status": {
-        "complete": 1,
-        "partial": 3,
+        "complete": 0,
+        "partial": 5,
         "in_progress": 0,
         "not_started": 0,
         "blocked": 0,
-        "needs_verification": 1,
+        "needs_verification": 0,
         "not_applicable": 0
       },
       "implementation_in_scope": 5,
@@ -255,30 +276,30 @@
       "implementation_percent": 40.0,
       "implementation_weighted_percent": 70.0,
       "verification_requiring": 5,
-      "verification_verified": 4,
-      "verification_percent": 80.0,
+      "verification_verified": 5,
+      "verification_percent": 100.0,
       "id": "docs",
       "name": "Documentation accuracy"
     },
     {
       "total": 1,
       "by_status": {
-        "complete": 0,
+        "complete": 1,
         "partial": 0,
         "in_progress": 0,
         "not_started": 0,
-        "blocked": 1,
+        "blocked": 0,
         "needs_verification": 0,
         "not_applicable": 0
       },
       "implementation_in_scope": 1,
-      "implementation_complete": 0,
+      "implementation_complete": 1,
       "implementation_partial": 0,
-      "implementation_percent": 0.0,
-      "implementation_weighted_percent": 0.0,
-      "verification_requiring": 0,
-      "verification_verified": 0,
-      "verification_percent": 0.0,
+      "implementation_percent": 100.0,
+      "implementation_weighted_percent": 100.0,
+      "verification_requiring": 1,
+      "verification_verified": 1,
+      "verification_percent": 100.0,
       "id": "repo",
       "name": "Repository hygiene"
     }
@@ -326,6 +347,11 @@
           "exit_code": 0,
           "result": "126 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "get_plan_state live on 4 seeded scenarios; returns scenario_id/plan_id/version/status/entities/dependencies/constraints/disruptions.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -1017,16 +1043,16 @@
     {
       "id": "BE-19",
       "name": "Read-only guarantee (no writes to committed plan)",
-      "description": "No tool mutates entities, dependencies, statuses, version, or disruptions; no commit/apply tool exists; simulations are always labeled hypothetical.",
+      "description": "The 12 analysis tools never mutate the committed plan; a write path now exists (5 write tools, gated) and two gate bypasses were found in this audit.",
       "category": "backend",
       "priority": "critical",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
-        "Plan version/status/disruptions unchanged before vs after a full analysis workflow",
-        "Tests assert non-mutation for engines, tools, assistant, and adapter",
-        "No write tool registered"
+        "Read-only analysis tools never mutate the committed plan (verified live)",
+        "Write tools exist only behind the documented write gate",
+        "Every write route and the MCP server enforce the gate (TWO BYPASSES OPEN — see evidence)"
       ],
       "verification_method": "Live before/after state comparison + dedicated non-mutation tests",
       "evidence": [
@@ -1060,10 +1086,30 @@
           "exit_code": 0,
           "result": "29 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Read-only workflow re-verified on an isolated DB: after simulate -> triage -> alternatives -> compare -> schedule -> forecast, the plans/plan_versions/disruptions/recovery_commits/audit_log tables are all empty; plan version/status/disruptions unchanged.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "The write path exists now: 5 write tools (dry_run_recovery_plan, commit_recovery_plan, commit_reassignment, record_disruption, resolve_disruption) — the previous AC 'No write tool registered' is obsolete. Commit workflow verified end to end on the isolated write stack (dry-run -> confirm_token -> commit v1->v2 -> idempotent replay -> 400 on key reuse -> 409 on stale version).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: POST /api/substitutes/import on the read-only stack (RIPPLEBACK_WRITES_ENABLED=false) returned 200 {'ok':true,'written':{'demo-release-plan':1}} and wrote a substitute_catalog row (scenario_id=demo-release-plan, entity_id=payment-api, source=import) into the read-only DB. write_guard_reason is applied only inside /api/mcp/tool.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: the MCP server ignores RIPPLEBACK_API_KEY. On the keyed stack (env RIPPLEBACK_API_KEY set, server :8040) a tools/call record_disruption with NO Authorization header returned HTTP 200 and persisted a disruption (disruptions 3->4, plan_version 7); the same call through the adapter :8041 returned 403. RIPPLEBACK_HOST (server bind) is independent of adapter_host.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Close both gates before any release: (1) apply write_guard_reason to every mutating adapter route (import_substitutes, sync_now) not just /api/mcp/tool; (2) enforce the API key inside the MCP server's write tools, or keep the server loopback-only and document it as the trust boundary."
     },
     {
       "id": "MCP-01",
@@ -1133,6 +1179,11 @@
           "exit_code": 0,
           "result": "41 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Live registry re-counted: GET /api/health -> tool_count=17 = 12 read-only (get_plan_state, list_scenarios, simulate_disruption, find_alternative_dependencies, evaluate_recovery_plan, rebalance_workload, analyze_blocked_tasks, recalculate_delivery_forecast, validate_hard_constraints, compare_recovery_options, find_substitute_options, generate_recovery_schedule) + 5 write (dry_run_recovery_plan, record_disruption, resolve_disruption, commit_recovery_plan, commit_reassignment). The previous '11 tools' figure in this tracker is obsolete.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -1476,16 +1527,16 @@
     {
       "id": "MCP-12",
       "name": "Local API adapter surface",
-      "description": "Starlette adapter on :8001 exposing /api/health, /api/mcp/tools, /api/mcp/tool, /api/assistant/chat with validation, CORS for the Vite origin, and lifecycle cleanup.",
+      "description": "Starlette adapter exposing 14 documented routes: /api/health, /api/status, /api/mcp/tools, /api/mcp/tool, /api/assistant/chat, /api/sync, /api/commits, /api/commits/dry-run, /api/audit, /api/substitutes/import plus the write-path and auth surfaces, with validation and CORS for the Vite origin.",
       "category": "mcp",
       "priority": "critical",
       "status": "complete",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
-        "All four endpoints respond live through the proxy",
+        "All 14 documented routes respond live (or return a documented error)",
         "Health reports MCP + assistant provider state",
-        "Malformed requests rejected with 400"
+        "Malformed requests rejected with 4xx"
       ],
       "verification_method": "Live HTTP calls through Vite proxy + adapter test suite",
       "evidence": [
@@ -1510,10 +1561,25 @@
           "exit_code": 0,
           "result": "29 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "All 14 documented routes were exercised live against :8001/:8031/:8041 — documented error codes reproduced (400 bad body, 401 missing key, 403 bad key, 404 unknown route, 409 stale version, 422 bad schema value).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: POST /api/sync returns HTTP 200 {'ok':true} while the inner report is {'ok':false, 'plan':{'ok':false,'error':'no PM provider configured'...}} — a false success envelope.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: POST /api/substitutes/import returns HTTP 500 (not 4xx) for client input errors raised outside SeedError.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Fix the /api/sync false-success envelope (propagate report.ok), return 4xx instead of 500 for client-side import errors, and update the tracker copies of this description (it previously said 'four endpoints')."
     },
     {
       "id": "MCP-13",
@@ -1545,6 +1611,11 @@
           "type": "source",
           "path": "git status",
           "detail": "frontend/proxy-server.cjs deleted (D) — replaced by the adapter"
+        },
+        {
+          "type": "live_api",
+          "detail": "Browser (headless Chromium via Playwright, real Vite app at http://localhost:5173): every UI action in this audit (simulate, triage, options, compare, schedule, evaluate, assistant chat) travelled Vite /api -> adapter :8001 -> MCP :8000.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -1553,16 +1624,16 @@
     {
       "id": "MCP-14",
       "name": "Read-only guarantees at transport layer",
-      "description": "Adapter/client expose no write endpoint; only GET/POST analysis calls exist; assistant and tools cannot mutate committed state.",
+      "description": "The adapter now exposes mutating routes; the adapter enforces the API key on them, but the MCP server itself does not, and the write gate is not applied to every mutating route.",
       "category": "mcp",
       "priority": "critical",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
-        "No write route registered in the adapter",
+        "Write routes registered in the adapter are API-key protected (verified)",
         "Read-only recheck after full workflow",
-        "Dedicated tests assert non-mutation"
+        "The MCP server enforces the same key for write tools (NOT MET — see evidence)"
       ],
       "verification_method": "Route inspection + live before/after + tests",
       "evidence": [
@@ -1582,10 +1653,25 @@
           "exit_code": 0,
           "result": "29 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "API-key matrix on the keyed stack (:8041): GET routes public; POST /api/mcp/tool read tools public (auth-exempt by design); POST /api/mcp/tool write tools -> 403 without key, 403 with a wrong key, 200 with the right key; /api/commits, /api/sync, /api/substitutes/import -> 401 without key. Adapter enforcement is sound.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: the MCP server does not enforce the key. tools/call record_disruption on :8040 (RIPPLEBACK_API_KEY present in the environment) with no Authorization header returned HTTP 200 and persisted the write (disruptions 3->4). security.write_guard_reason only checks writes_enabled, not the key or a public bind.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/security.py",
+          "detail": "write_guard_reason (line 98) documents that it covers 'the MCP server's own write tools' — it does not; commit._assert_writes_enabled (line 75) is the only check the MCP write tools perform."
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Make the MCP server's five write tools call write_guard_reason (or enforce the API key at the transport layer), and extend it to cover adapter_host/public-bind cases."
     },
     {
       "id": "ASST-01",
@@ -1593,7 +1679,7 @@
       "description": "intents.py deterministically maps a message to one intent and extracts literal parameters; no id invention.",
       "category": "assistant",
       "priority": "high",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
@@ -1623,10 +1709,15 @@
           "exit_code": 0,
           "result": "32 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Intent routing re-tested on 12 cases + PRD demo phrases. DEFECT: the phrase family 'validate the hard constraints' / 'check constraints' / 'validate constraints' / 'hard constraints' routes to intent 'help'; only 'do we violate any hard constraint', 'are there constraint violations' and 'run constraint validation' reach validate_hard_constraints — although intents.py defines a CONSTRAINTS rule set.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Add the missing constraint phrasings to the intent matcher (or delete the unreachable CONSTRAINTS rule set) and add a regression test per phrase."
     },
     {
       "id": "ASST-02",
@@ -1670,7 +1761,7 @@
       "description": "Each intent maps to a tool sequence (triage, alternatives, compare, schedule, forecast, etc.) using live intermediate results.",
       "category": "assistant",
       "priority": "high",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
@@ -1689,10 +1780,15 @@
           "exit_code": 0,
           "result": "32 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: the intent 'compare_recovery_options' only calls get_plan_state; the prompt 'Find recovery alternatives and compare the options.' returns 'I need the recovery options to compare. Name the disrupted entity...' and never calls find_alternative_dependencies, so the comparison cannot happen.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Chain find_alternative_dependencies before compare_recovery_options in the compare_recovery_options intent (or resolve the entity from the plan first)."
     },
     {
       "id": "ASST-04",
@@ -1832,7 +1928,7 @@
       "description": "Response carries a full steps trace (tool, arguments, status, duration_ms, structured result) consumed by ChatPanel and visible in MCP Inspector.",
       "category": "assistant",
       "priority": "high",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
@@ -1850,10 +1946,15 @@
           "type": "source",
           "path": "frontend/src/components/ChatPanel.tsx",
           "detail": "renders tool trace per message"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT: tool_calls_made is under-reported. 'Which tasks are blocked?' and 'What is blocked?' both report tool_calls_made=0 while the returned steps contain 1 get_plan_state call — the counter is only assigned after the handler returns, and six early-return paths (orchestrator.py lines 194/201/213/223/236/253/274) leave it 0.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Set tool_calls_made before every early return in the orchestrator (or derive it from the emitted steps list) and assert it in a test."
     },
     {
       "id": "ASST-09",
@@ -1950,6 +2051,11 @@
           "type": "live_api",
           "detail": "RIPPLEBACK_ASSISTANT_PROVIDER not configured in this environment; health reports deterministic",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Provider still 'deterministic' in this environment: RIPPLEBACK_BEDROCK_REGION is not set, and the adapter honestly reports the fallback ('fallback: Bedrock unavailable: RIPPLEBACK_BEDROCK_REGION is not set') instead of pretending to have called Bedrock.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -1988,6 +2094,16 @@
           "exit_code": 0,
           "result": "32 passed",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Adversarial write prompts ('commit the recovery plan', 'apply it', 'disrupt the database') produced no write tool call: only get_plan_state / simulate_disruption. NON_READ_ONLY_TOOLS = commit_reassignment, commit_recovery_plan, dry_run_recovery_plan, record_disruption, resolve_disruption are all excluded from the assistant.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "DEFECT (minor): 'Go ahead and commit the recovery plan for the payment API.' is routed to intent 'plan_state' — safe (no write attempted) but it never states that committing requires dry-run -> confirm token -> commit, so the user gets no explicit refusal.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2028,9 +2144,9 @@
       "description": "Metrics from live plan/triage/comparison/schedule state, active disruption card, recovery summary, honest placeholders when no analysis has run.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Renders live metrics (entities, blocked, at-risk, feasible options, schedule duration)",
         "Plan error surfaced with retry",
@@ -2056,6 +2172,11 @@
           "exit_code": 0,
           "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Overview renders live metric cards (PLAN ENTITIES 6, BLOCKED NOW 5, AT RISK 2, FEASIBLE 1) at 1440/1280/1024/768/390 with no horizontal overflow; unloaded metrics show '—' with honest units ('no triage run').",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2067,9 +2188,9 @@
       "description": "ReactFlow graph with fit-to-view, zoom/pan, controls, minimap, legend, node detail, state colors, filters.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Graph renders from live scenario data",
         "Fit/zoom/pan/minimap/legend present and functional",
@@ -2087,6 +2208,11 @@
           "type": "source",
           "path": "frontend/src/App.tsx",
           "detail": "planGate gates the graph behind loading/error states; graph container has min-h and flex sizing"
+        },
+        {
+          "type": "browser",
+          "detail": "Dependency Graph renders 6 ReactFlow nodes and 4 edges, 1 .react-flow__controls, 1 .react-flow__minimap, 15 svg elements, a 7-state legend and a filter bar; clicking a node opens the detail panel (evidence path + state).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2098,9 +2224,9 @@
       "description": "Scenario-driven disruption list/history with honest empty state.",
       "category": "frontend",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Renders disruption state from the store",
         "Empty state explains nothing has been simulated",
@@ -2112,6 +2238,11 @@
           "type": "source",
           "path": "frontend/src/components/DisruptionsView.tsx",
           "detail": "136 lines reading store disruption state; empty-state copy present"
+        },
+        {
+          "type": "browser",
+          "detail": "Disruptions page lists 9 live presets built from the 10-entity plan, 4 severity buttons, the read-only disclaimer and the 'Current Simulation' card; the empty state says 'Nothing simulated yet'.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2123,9 +2254,9 @@
       "description": "Triage + simulation results: task list, status filters, impact summary, dependency chains with evidence paths.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Readable task list with one state per entity",
         "Filters work",
@@ -2143,6 +2274,11 @@
           "type": "source",
           "path": "frontend/src/components/ui/EvidencePath.tsx",
           "detail": "evidence path renderer"
+        },
+        {
+          "type": "browser",
+          "detail": "Impact Analysis shows the live disruption card, the critical path (length 9, payment-api -> backend-integration -> integration-testing -> release-validation -> production-release) and working state tabs (All 10 / Blocked 5 / At Risk 2 / Healthy 2 / Done 1); clicking 'Blocked' filters the entity list.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2154,9 +2290,9 @@
       "description": "Option cards from live alternatives/comparison with feasibility status, violations, excluded options, selection.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Cards show real options with feasibility and violations",
         "Excluded options listed with reasons",
@@ -2169,6 +2305,11 @@
           "type": "source",
           "path": "frontend/src/components/RecoveryOptions.tsx",
           "detail": "630 lines: comparisonResult/ranking rendering, loading/error/empty states (5 loading + 5 empty-state references in source)"
+        },
+        {
+          "type": "browser",
+          "detail": "Recovery Planner renders the backend-ranked option: '1 feasible · 1 scorable', score -1.00, delta -1 duration_units, the backend description and the unblocked entity list; the empty state ('No recovery options yet') is honest and offers the next step.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2180,9 +2321,9 @@
       "description": "Relative-duration schedule view: readiness groups, layers, execution order, timeline chart with visible units, baseline-vs-recovery comparison.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Charts/axes readable with duration_units labels",
         "No calendar dates anywhere",
@@ -2205,6 +2346,11 @@
           "type": "live_api",
           "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Schedule shows PROPOSED DURATION 2 duration_units, FEASIBILITY Feasible, critical path length 9 duration_units and a rendered chart (31 svg elements); a scan of the rendered text found no calendar date, weekday or timezone token.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2216,9 +2362,9 @@
       "description": "Structural evaluation + proposed schedule for the selected option, with explicit 'nothing approved or committed' copy and no approval button.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Useful no-selection state",
         "Runs real evaluate_recovery_plan / generate_recovery_schedule",
@@ -2236,6 +2382,11 @@
           "type": "live_api",
           "detail": "evaluate_recovery_plan and generate_recovery_schedule return real results through the same API used by this page",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Review Plan shows the selected option (rank #1, score -1.00, delta -1 duration_units), the explicit read-only copy ('The backend is read-only ... nothing is approved, committed, or written back to the plan') and a working Evaluate button returning 'Structurally valid' with the finding list.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2247,9 +2398,9 @@
       "description": "Session activity events (stage, label, status, timestamp) from real operations.",
       "category": "frontend",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Event labels/statuses/timestamps render from real session events",
         "Honest history (session-scoped, no persistence claims)"
@@ -2265,6 +2416,11 @@
           "type": "source",
           "path": "frontend/src/components/ActivityLog.tsx",
           "detail": "122-line workflow stage strip"
+        },
+        {
+          "type": "browser",
+          "detail": "Activity Log renders 6 real session events with label, status and timestamp (Disruption detected 7:20:09 PM, Simulation completed, Impact analyzed 5 blocked / 2 at-risk, Recovery options generated 1 feasible options, Option selected for review, Proposed schedule generated).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2276,9 +2432,9 @@
       "description": "Connection health, live discovered tool count, schemas, filterable call log, expandable request/result details, errors and execution states.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Connection health accurate",
         "Tool count = live discovered count",
@@ -2297,10 +2453,20 @@
           "type": "live_api",
           "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "MCP Inspector shows live connection health (CONNECTED, endpoint /api/mcp, RippleBack v0.1.0), 17 discovered tools, working status filters and expandable call details; a failed call renders as an error row.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "DEFECT: the call counter is doubled. The session showed 'CALLS THIS SESSION 16' for 8 real tool calls, because mcpClient pushes the pending and the completed entry under the same id and the Inspector seeds its list from the whole log — which also renders a phantom RUNNING row. 46 duplicate-key console warnings were captured.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+      "next_action": "Fix the doubled call log: emit the pending entry with a distinct id (or replace it in place on completion) and key the Inspector list by a unique call id; add a duplicate-key test."
     },
     {
       "id": "FE-10",
@@ -2308,9 +2474,9 @@
       "description": "Chat conversation with persistent history, tool execution trace, loading/failure states, docked on lg+ and overlay drawer below.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Conversation area usable",
         "History persists across navigation and scenario switches",
@@ -2334,6 +2500,11 @@
           "type": "live_api",
           "detail": "ChatPanel receives the same steps trace verified in ASST-08",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Assistant round-trip in the browser: 'Which tasks are blocked?' produced a reply plus a rendered get_plan_state step trace, and the conversation plus trace survived navigation to Activity Log and back. The panel is docked at 1440 and uses an overlay below lg.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2345,9 +2516,9 @@
       "description": "Every view gates on real state: Spinner while loading, EmptyState when nothing to show, ErrorState with retry on failure, disconnected copy.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Loading states render during fetches",
         "Empty states explain what to do",
@@ -2370,10 +2541,20 @@
           "type": "source",
           "path": "grep for mock fallbacks",
           "detail": "Only 'no mock data' copy found — no mock fallback code paths remain"
+        },
+        {
+          "type": "browser",
+          "detail": "Injected 503 on POST /api/mcp/tool: the Disruptions page rendered the error block 'Simulation failed — audit-injected failure: MCP server unreachable' (role=alert); after un-routing and retrying, the simulation succeeded and the page recovered with no mock fallback.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "DEFECT (minor): the disruption is dispatched optimistically BEFORE the backend call, so a failed simulation still leaves the page showing 'Disruption active — reset to run another' plus a SIMULATED badge in the header and the Current Simulation card, contradicting the error message. The user must press 'Reset simulation' to clear it.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+      "next_action": "Roll the disruption state back when the simulation call fails (dispatch the optimistic TRIGGER_DISRUPTION only after the backend acknowledges, or clear it in the catch block)."
     },
     {
       "id": "FE-12",
@@ -2381,9 +2562,9 @@
       "description": "Sidebar navigates Overview, Dependency Graph, Disruptions, Impact Analysis, Recovery Planner, Schedule, Review Plan, Activity Log, MCP Inspector; mobile drawer.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "All 9 destinations reachable",
         "Active state correct",
@@ -2400,6 +2581,11 @@
           "type": "source",
           "path": "frontend/src/App.tsx",
           "detail": "view router switches on activeView for all 9 destinations + assistant panel"
+        },
+        {
+          "type": "browser",
+          "detail": "All 9 destinations reached and rendered in the browser (Overview, Dependency Graph, Disruptions, Impact Analysis, Recovery Planner, Schedule, Review Plan, Activity Log, MCP Inspector); the active state and header crumb follow the navigation.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2411,9 +2597,9 @@
       "description": "Shared Zustand store keeps plan, triage, impact, comparison, selection, connection, and chat consistent across views.",
       "category": "frontend",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Scenario switch resets analysis but preserves chat/connection/layout",
         "Selected option drives Schedule/Review consistently"
@@ -2424,10 +2610,20 @@
           "type": "source",
           "path": "frontend/src/store/appStore.ts",
           "detail": "single AppProvider store; SET_SCENARIO merge rules documented in reducer"
+        },
+        {
+          "type": "browser",
+          "detail": "Cross-page consistency verified: after one simulation every view shows the same SIMULATED badge, scenario id and plan version in the header; selecting an option in the Recovery Planner drove the Schedule (PROPOSED DURATION 2 duration_units, Feasible) and the Review Plan (SELECTED OPTION drop-dependency:backend-integration->payment-api).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "The scenario switch itself was executed with a synthetic DOM click because of DEFECT D1: in the header dropdown the listbox is 'absolute z-50' inside a 'position:relative' parent with z-index auto, so main content paints over it. elementFromPoint at the centres of options 1-3 returns main-content elements, a real Playwright click on option 1 times out, and only dispatchEvent('click') works.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "Manual browser walkthrough: render, interactions, loading/empty/error states (blocked: no desktop browser connected)."
+      "next_action": "Fix the dropdown stacking: give the header/dropdown wrapper an explicit z-index (or render the listbox in a portal) so the options are hit-testable, then re-run the mouse-driven scenario switch."
     },
     {
       "id": "FE-14",
@@ -2459,6 +2655,11 @@
           "type": "live_api",
           "detail": "Plan load failure path sets planError and renders ErrorState (source)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Confirmed in the browser: the injected 503 produced an error state and no fabricated plan, triage, options or schedule data anywhere.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2485,6 +2686,13 @@
           "exit_code": 0,
           "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "re-run in this audit: exit 0; dist/index.html 0.45 kB, dist/assets/index-*.css 41.20 kB (gzip 8.23 kB), dist/assets/index-*.js 893.81 kB (gzip 251.87 kB); the >500 kB chunk-size warning is still non-blocking",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2510,6 +2718,13 @@
           "exit_code": 0,
           "result": "exit 0, no diagnostics",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npx tsc -b",
+          "exit_code": 0,
+          "result": "re-run in this audit: exit 0, no diagnostics",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2535,6 +2750,13 @@
           "exit_code": 0,
           "result": "exit 0, no diagnostics (oxlint 1.88.0)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npx oxlint src",
+          "exit_code": 0,
+          "result": "re-run in this audit: exit 0, no diagnostics",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2600,9 +2822,9 @@
       "description": "Responsive sidebar, clear page header, correctly sized main workspace, optional assistant panel, consistent spacing.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Sidebar + header + workspace render at target widths",
         "Assistant panel docks/collapses correctly",
@@ -2619,6 +2841,11 @@
           "type": "source",
           "path": "frontend/src/components/TopHeader.tsx",
           "detail": "page title, scenario selector, connection status"
+        },
+        {
+          "type": "browser",
+          "detail": "Layout rendered at 1440, 1280, 1024, 768 and 390 px: sidebar + header + workspace, assistant docked at >=1024 and as an overlay below it; no horizontal overflow at any width (documentElement.scrollWidth == clientWidth).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2630,9 +2857,9 @@
       "description": "Readable metrics, clear active disruption, useful recovery summary, correct loading/empty states.",
       "category": "ui_ux",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Metrics legible",
         "Active disruption clear",
@@ -2644,6 +2871,11 @@
           "type": "source",
           "path": "frontend/src/components/OverviewView.tsx",
           "detail": "MetricCard grid with tones and honest units; plan error block; empty analysis copy"
+        },
+        {
+          "type": "browser",
+          "detail": "Overview metric cards and empty/loading states read correctly at all five widths.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2655,9 +2887,9 @@
       "description": "Appropriate initial zoom, readable nodes/labels, fit-to-view, zoom/pan, responsive resizing, node inspection, legend, sized minimap, state distinctions.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "blocked",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "blocked",
+      "verification": "verified",
       "acceptance_criteria": [
         "Initial zoom readable (fit caps maxZoom)",
         "Labels readable at default zoom",
@@ -2671,6 +2903,11 @@
           "type": "source",
           "path": "frontend/src/components/DependencyGraph.tsx",
           "detail": "fitView with maxZoom caps, Controls bar, MiniMap toggle (default on), collapsible legend, per-state color map, filters, node detail panel"
+        },
+        {
+          "type": "browser",
+          "detail": "Graph inspected in the browser: 6 nodes, fit-to-view, controls and minimap present, legend distinguishes 7 states with distinct colours, and a node click opens the detail panel.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2682,9 +2919,9 @@
       "description": "Readable scenario selection, clear severity controls, accurate simulation status, useful result summaries, hypothetical/read-only disclaimer.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Scenario + severity controls usable",
         "Simulation status accurate",
@@ -2701,6 +2938,16 @@
           "type": "source",
           "path": "frontend/src/components/TopHeader.tsx",
           "detail": "scenario selector with SCENARIO_INFO labels"
+        },
+        {
+          "type": "browser",
+          "detail": "Simulator verified: 9 presets derived from the live plan, 4 severity options, the 'Will simulate' preview, the read-only disclaimer ('Hypothetical simulation only — the committed plan is not modified') and an accurate status after a successful run.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "DEFECT (minor): after a FAILED simulation the page still shows the disruption as active with a SIMULATED badge (optimistic dispatch before the call). Also the header scenario dropdown is not mouse-clickable for options 1-3 (see FE-13 evidence).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2712,9 +2959,9 @@
       "description": "Readable task list, clear status filters, useful impact summaries, understandable dependency chains.",
       "category": "ui_ux",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "List readable",
         "Filters clear",
@@ -2726,6 +2973,11 @@
           "type": "source",
           "path": "frontend/src/components/ImpactPanel.tsx",
           "detail": "state list, filters, summary tiles, evidence chains from live results"
+        },
+        {
+          "type": "browser",
+          "detail": "Impact Analysis: state tabs (All 10 / Blocked 5 / At Risk 2 / Healthy 2 / Done 1) filter the list, evidence chains read 'Payment API service -> Backend integration -> Integration testing -> Release validation -> Production release'.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2737,9 +2989,9 @@
       "description": "Readable option cards, clear feasibility status, visible constraint violations, useful limited/empty states, consistent selection.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Cards readable with feasibility + violations",
         "Empty/limited states useful",
@@ -2751,6 +3003,11 @@
           "type": "source",
           "path": "frontend/src/components/RecoveryOptions.tsx",
           "detail": "option cards with ranked/excluded sections, feasibility badges, violation display, empty/loading states"
+        },
+        {
+          "type": "browser",
+          "detail": "Option card, feasibility badge, score -1.00, unblocked entities and the empty state all render correctly.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2762,9 +3019,9 @@
       "description": "Readable charts/axes, visible duration_units, clear baseline-vs-recovery comparison, no fabricated calendar dates.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Axes labeled with relative units",
         "No date rendering",
@@ -2786,6 +3043,11 @@
           "type": "live_api",
           "detail": "generate_recovery_schedule -> unit=duration_units, relative earliest_start/finish offsets; grep of full JSON found no date-like strings (no 2024/2025/2026/weekday/timezone tokens)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Schedule renders relative units only (PROPOSED DURATION 2 duration_units, critical path length 9 duration_units); no calendar date appears in the rendered output; the baseline-vs-recovery comparison tiles are present.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2797,9 +3059,9 @@
       "description": "Useful no-selection state, clear option details, real evaluation results, no false approval/commit claims.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Copy states nothing is approved/committed",
         "No approval button",
@@ -2811,6 +3073,11 @@
           "type": "source",
           "path": "frontend/src/components/ReviewPlan.tsx",
           "detail": "no-approval copy verified in source: lines 4, 42, 111, 221-227"
+        },
+        {
+          "type": "browser",
+          "detail": "Rendered Review Plan copy confirmed: 'The backend is read-only. This is a review of a simulated option — nothing is approved, committed, or written back to the plan.' and 'SIMULATED' badges; no approval button exists.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2822,9 +3089,9 @@
       "description": "Readable event labels, correct event statuses, honest timestamps and history.",
       "category": "ui_ux",
       "priority": "low",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Events render with label/status/time",
         "Session-scoped honesty"
@@ -2835,6 +3102,11 @@
           "type": "source",
           "path": "frontend/src/components/ActivityView.tsx",
           "detail": "event rows over store activity entries"
+        },
+        {
+          "type": "browser",
+          "detail": "Activity Log rows show label, status and wall-clock timestamps for 6 events.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2846,9 +3118,9 @@
       "description": "Clear connection health, actual discovered tool count, readable schemas, expandable request/result details, filterable call log, clear errors/execution states.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Health matches adapter state",
         "Count = 11 live",
@@ -2867,6 +3139,16 @@
           "type": "source",
           "path": "frontend/src/components/MCPInspector.tsx",
           "detail": "connection summary + live count + filters + expandable details"
+        },
+        {
+          "type": "browser",
+          "detail": "Inspector shows CONNECTED, endpoint /api/mcp, RippleBack v0.1.0, 17 discovered tools (live, not hardcoded), working filters and expandable call details.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "DEFECT: the session call counter reads 16 for 8 real tool calls and a phantom RUNNING row is rendered — the same doubled-log defect as FE-09.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2878,9 +3160,9 @@
       "description": "Usable conversation area, persistent history while navigating, tool execution visibility, readable responses, loading/failure states, responsive drawer.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "History persists across view/scenario switches",
         "Tool trace visible",
@@ -2898,6 +3180,11 @@
           "type": "source",
           "path": "frontend/src/App.tsx",
           "detail": "overlay drawer below lg with backdrop; docked column on lg+"
+        },
+        {
+          "type": "browser",
+          "detail": "Assistant usable: input placeholder 'Ask about the plan, a disruption, or recovery options…', reply plus tool trace, history preserved across navigation, docked at 1440.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2909,9 +3196,9 @@
       "description": "Verify layout, graph sizing, assistant drawer, and overflow at the five required widths with actual screenshots.",
       "category": "ui_ux",
       "priority": "high",
-      "status": "blocked",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "blocked",
+      "verification": "verified",
       "acceptance_criteria": [
         "Screenshots captured at all five widths",
         "No horizontal overflow at any width"
@@ -2922,6 +3209,11 @@
           "type": "source",
           "path": "frontend/src/App.tsx",
           "detail": "viewport-width logic exists (>=1024 dock, >=1280/1600 context aside) — implementation present, unverified visually"
+        },
+        {
+          "type": "browser",
+          "detail": "Screenshots captured at 1440x900, 1280x800, 1024x768, 768x1024 and 390x844 (plus per-view shots at 1440) in this audit; layout, graph sizing and the assistant drawer were checked at every width.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2933,9 +3225,9 @@
       "description": "Main workspace never scrolls horizontally; spacing and typography consistent across pages.",
       "category": "ui_ux",
       "priority": "medium",
-      "status": "blocked",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "blocked",
+      "verification": "verified",
       "acceptance_criteria": [
         "No horizontal scrollbar at any required width"
       ],
@@ -2945,6 +3237,11 @@
           "type": "source",
           "path": "frontend/src/App.tsx",
           "detail": "overflow-hidden + min-w-0 on layout columns (source-level mitigation)"
+        },
+        {
+          "type": "browser",
+          "detail": "documentElement.scrollWidth == clientWidth at all five widths (no page-level horizontal scrollbar). One contained overflow at 390 px: a P.text-[11px] uppercase label inside an 8 px-wide clipped container (scrollWidth 66) — visually clipped, not scrollable.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -2971,7 +3268,7 @@
         }
       ],
       "dependencies": [],
-      "next_action": "Set the page title to 'RippleBack' (one-line change; do during normal work, not this audit)."
+      "next_action": "Set <title>RippleBack</title> in frontend/index.html (one line). Left unchanged by this audit, which does not modify application code."
     },
     {
       "id": "TEST-01",
@@ -3002,6 +3299,13 @@
           "exit_code": 0,
           "result": "504 passed in 3.72s",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": ".venv/bin/python -m pytest tests/ -q",
+          "exit_code": 0,
+          "result": "659 passed in 8.39s (re-run at audit close; 8.54s on the first run) — up from the 504 recorded previously. All 25 per-file suites pass: test_scenarios 21, test_impact 18, test_recovery 27, test_triage 22, test_graph 14, test_critical_path 11, test_workload 27, test_forecast 34, test_constraints 42, test_scoring 57, test_comparison 30, test_substitute_recovery 28, test_scheduler 18, test_milestone6_integration 21, integration/test_mcp_server 41, test_client 17, test_adapter 12, test_adapter_api 30, test_assistant 32, test_cli 11, test_write_path 34, test_integrations 36, test_sync_overlay 12, test_metrics_weights 31",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -3228,6 +3532,13 @@
           "exit_code": 0,
           "result": "exit 0; tsc -b && vite build; dist/ emitted; non-blocking chunk-size warning (>500 kB)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "command",
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "result": "re-run in this audit: exit 0, dist/ emitted",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -3312,9 +3623,9 @@
       "description": "Click-through of every page, controls, and workflows in a real browser.",
       "category": "testing",
       "priority": "high",
-      "status": "blocked",
+      "status": "complete",
       "implementation": "not_applicable",
-      "verification": "blocked",
+      "verification": "verified",
       "acceptance_criteria": [
         "Each page exercised in a browser with observed behavior"
       ],
@@ -3324,6 +3635,11 @@
           "type": "source",
           "path": "audit attempt",
           "detail": "tools.browser.tabs.list -> 'No desktop browser is connected to this session'"
+        },
+        {
+          "type": "browser",
+          "detail": "Browser functional testing performed with headless Chromium (Playwright, installed outside the repository) against the real Vite app: all 9 views, the scenario dropdown, disruption presets + severity, simulate, triage tabs, option selection, schedule generation, structural evaluation, activity log, assistant chat, MCP inspector, an injected 503 error path and recovery after the error.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -3337,9 +3653,9 @@
       "description": "Screenshots at required widths proving readability and layout.",
       "category": "testing",
       "priority": "high",
-      "status": "blocked",
+      "status": "complete",
       "implementation": "not_applicable",
-      "verification": "blocked",
+      "verification": "verified",
       "acceptance_criteria": [
         "Screenshots captured for all pages at 1440/1280/1024/768/390"
       ],
@@ -3349,6 +3665,11 @@
           "type": "source",
           "path": "audit attempt",
           "detail": "browser tooling disconnected"
+        },
+        {
+          "type": "browser",
+          "detail": "Screenshots captured: 5 responsive widths, 9 views at 1440, the dropdown open state, the injected-error state, the post-error recovery, cross-page consistency, the assistant and the inspector.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -3376,6 +3697,12 @@
           "type": "source",
           "path": "find / -iname '*prd*' and '*.pdf' (repo)",
           "detail": "No PRD file in the repository; prior progress file records the same finding (prd_pdf_absent)"
+        },
+        {
+          "type": "source",
+          "path": "repository search (find / -iname '*prd*', '*.pdf')",
+          "detail": "Re-confirmed in this audit: no PRD document exists in the repository or on this machine. No PRD requirement was invented; every PRD-dependent task stays blocked.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -3386,11 +3713,11 @@
     {
       "id": "PRD-02",
       "name": "Write-side workflow (approval, commit/apply, post-verification, applied-vs-failed, version conflicts, duplicate protection)",
-      "description": "Whether the product requires human approval before applying a recovery plan, a commit/apply capability, post-application verification, applied-vs-failed reporting, optimistic-concurrency version checks, and duplicate-operation protection. None is implemented; the product is read-only by design (README §16 'No writes'). Requirement status is unknowable without the PRD.",
+      "description": "A write path is now implemented and verified (dry-run -> confirm token -> commit, optimistic concurrency, idempotency replay, reassignment, audit trail). What remains unknown is what the PRD requires: human approval, post-application verification, applied-vs-failed reporting and PM write-back are not implemented.",
       "category": "prd",
       "priority": "high",
       "status": "blocked",
-      "implementation": "not_started",
+      "implementation": "partial",
       "verification": "blocked",
       "acceptance_criteria": [
         "PRD/product decision obtained on whether writes are in scope",
@@ -3413,13 +3740,23 @@
           "type": "source",
           "path": "project_progress.json (v1)",
           "detail": "unresolved issue prd_commit_tool_missing: product-level decision needed"
+        },
+        {
+          "type": "live_api",
+          "detail": "The previous evidence 'no write tool registered / count=11' is OBSOLETE. Live registry = 17 tools including 5 write tools; the commit workflow was executed end to end on the isolated write stack (v1 -> v2, status local_only, idempotent replay, 400 on key reuse, 409 on stale version, token bound to the exact change set). Still absent: a named human approver, post-apply verification, applied-vs-failed reporting and PM write-back (status stays local_only).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Two gate bypasses must be closed before this can be signed off: /api/substitutes/import writes on a read-only stack, and the MCP server ignores RIPPLEBACK_API_KEY.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
         "PRD-01 (needs PRD)",
         "Product decision"
       ],
-      "next_action": "Get a product decision (with the PRD) on commit/approval scope. Do not implement without sign-off; do not claim compliance either way."
+      "next_action": "Obtain the PRD and a product decision on approval/commit scope; then either add the missing pieces (named approval, post-apply verification, applied-vs-failed report, PM write-back) or record the write path as out of scope with sign-off."
     },
     {
       "id": "PRD-03",
@@ -3686,6 +4023,11 @@
           "type": "live_api",
           "detail": "GET http://localhost:5173/api/mcp/tools -> count=11, each tool has name/description/input_schema (live tools/list, nothing hardcoded)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Live registry = 17 tools (12 read-only + 5 write); the previously recorded '11' is obsolete.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -3858,9 +4200,9 @@
       "description": "Tool calls appear in the inspector with status, duration, expandable args/results, and filters.",
       "category": "demo",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Calls visible with status/duration",
         "Expandable details",
@@ -3877,6 +4219,11 @@
           "type": "live_api",
           "detail": "The same call events are emitted by mcpClient._emit for every tool call made during this audit",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Inspector verified in the browser: calls list with status and duration, expandable arguments/results, working status filters and visible error rows. DEFECT: the session counter is doubled (16 shown for 8 real calls) and a phantom RUNNING row is rendered.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -3926,6 +4273,11 @@
           "type": "live_api",
           "detail": "get_plan_state('project-full') before AND after triage+alternatives+compare+schedule workflow -> version=1, status=healthy, disruptions=[] (unchanged)",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Read-only operations confirmed non-mutating on an isolated DB: after the full analysis workflow the plan version/status/disruptions are unchanged and the plan, plan_versions, recovery_commits, audit_log and outbox tables are empty. The write path is separate, gated, and audited.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
@@ -3937,9 +4289,9 @@
       "description": "UI copy never claims approval/commit/apply; review page states read-only explicitly.",
       "category": "demo",
       "priority": "critical",
-      "status": "needs_verification",
+      "status": "complete",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "No button or copy implies an applied plan",
         "Read-only disclaimer visible"
@@ -3955,6 +4307,11 @@
           "type": "live_api",
           "detail": "generate_recovery_schedule response carries simulated=true and limitations 'no schedule is committed'",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "browser",
+          "detail": "Rendered copy confirmed on the Review Plan page: 'The backend is read-only. This is a review of a simulated option — nothing is approved, committed, or written back to the plan.', the SIMULATED badge, and no approval or commit button anywhere in the UI.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
@@ -4007,6 +4364,46 @@
           "type": "source",
           "path": "frontend/src/api/mcpClient.ts header",
           "detail": "STALE: says the proxy 'forwards to the Python MCP server at http://127.0.0.1:8000' — it actually forwards to the adapter on :8001"
+        },
+        {
+          "type": "source",
+          "path": "README.md §1 (line 71) and §16 (line 868)",
+          "detail": "STALE: 'Explicitly not implemented ...' lists committing a recovery/reassignment, persisting disruptions, AI/Amazon Bedrock, a frontend, persistence and auth as NOT implemented. All six ARE implemented and were verified live in this audit (plan status flipped to 'disrupted', open_disruptions=1, plan version 2; a real dashboard at :5173; a write path with commit + audit)."
+        },
+        {
+          "type": "source",
+          "path": "README.md §16",
+          "detail": "STALE: it states the committed plan is 'always healthy' with 'disruptions: []' — false: a recorded disruption sets status='disrupted' and open_disruptions=1."
+        },
+        {
+          "type": "source",
+          "path": "frontend/README.md",
+          "detail": "STALE: documents a deleted proxy-server.cjs on :3001, a /api/mcp proxy to the Node shim (actual: /api -> adapter :8001), the wrong root path 'BuildBack/', non-existent files (src/data/mockScenario.ts, ScenarioSelector.tsx, ApprovalPanel.tsx), a mock auto-fallback that does not exist, and 'Known limitations: No write path yet'."
+        },
+        {
+          "type": "source",
+          "path": "DEMO_RUNBOOK.md lines 30, 53, 67, 101",
+          "detail": "STALE INVOCATION: 'python -m rippleback up|doctor|seed-sample|sync' cannot run — there is no src/rippleback/__main__.py ('No module named rippleback.__main__'). The console script has every subcommand (rippleback up / doctor / seed-sample / sync / import-substitutes / version) and was verified working."
+        },
+        {
+          "type": "source",
+          "path": "docs/DECISIONS.md",
+          "detail": "INACCURATE: claims 'The MCP server tools and the adapter's /api/mcp/tool route both call it [write_guard_reason]' — false for the server; commit._assert_writes_enabled is the only check the MCP write tools perform."
+        },
+        {
+          "type": "source",
+          "path": "src/rippleback/server.py line 3",
+          "detail": "Docstring says 'fourteen read-only analysis tools'; the server registers 12 read-only + 5 write tools."
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts lines 1-12",
+          "detail": "STALE header: mentions an Express/FastAPI adapter as future work and a direct /api/mcp -> :8000 path; the real flow is Vite /api -> adapter :8001 -> MCP :8000."
+        },
+        {
+          "type": "source",
+          "path": "docs/ENDPOINTS.md",
+          "detail": "Accurate (14 routes, 17 tools, 12+5 split). One omission: it does not state that /api/commits/dry-run returns 403 when writes are disabled (it does)."
         }
       ],
       "dependencies": [
@@ -4014,7 +4411,7 @@
         "DOC-02",
         "DOC-05"
       ],
-      "next_action": "Fix the stale sections: root README §1/§5/§16/§19 mock-frontend claims, frontend/README.md architecture, mcpClient.ts header comment. Keep DEMO_RUNBOOK (verified accurate)."
+      "next_action": "Rewrite the stale sections: README §1/§5/§16/§19, frontend/README.md architecture and startup, DEMO_RUNBOOK invocation form (python -m rippleback -> rippleback), docs/DECISIONS.md write-gate sentence, server.py docstring, mcpClient.ts header."
     },
     {
       "id": "DOC-01",
@@ -4049,10 +4446,20 @@
           "type": "source",
           "path": "README.md §19 adapter table",
           "detail": "'400 bad input' — schema-invalid args actually return 200 + isError (body 400 only for malformed JSON)"
+        },
+        {
+          "type": "source",
+          "path": "README.md §1 line ~71 and §16 line ~868",
+          "detail": "STALE (worse than previously recorded): §1 'Explicitly not implemented' lists six features that ARE implemented and verified (commit recovery/reassignment, persisting disruptions, AI/Bedrock integration, the frontend, persistence and auth). §16 also claims the committed plan is 'always healthy' with 'disruptions: []'."
+        },
+        {
+          "type": "source",
+          "path": "README.md §19 adapter table",
+          "detail": "Still imprecise: schema-invalid tool arguments return 200 with isError=true (400 is only for a malformed JSON body)."
         }
       ],
       "dependencies": [],
-      "next_action": "Correct the four stale passages; no contract changes needed."
+      "next_action": "Delete or rewrite the two stale README sections (they now understate the system) and correct the adapter error-status wording."
     },
     {
       "id": "DOC-02",
@@ -4077,10 +4484,15 @@
           "type": "source",
           "path": "frontend/vite.config.ts",
           "detail": "actual: '/api' -> http://127.0.0.1:8001 (adapter)"
+        },
+        {
+          "type": "source",
+          "path": "frontend/README.md",
+          "detail": "Still documents the deleted Node shim: proxy-server.cjs, port 3001, '/api/mcp -> Node shim' (actual: Vite '/api' -> adapter :8001), the wrong root 'BuildBack/', three non-existent files, a non-existent mock fallback and 'No write path yet'."
         }
       ],
       "dependencies": [],
-      "next_action": "Rewrite the architecture/startup sections of frontend/README.md to match the adapter-based flow."
+      "next_action": "Rewrite the architecture and startup sections of frontend/README.md against vite.config.ts."
     },
     {
       "id": "DOC-03",
@@ -4088,9 +4500,9 @@
       "description": "docs/data-contract.md (1147 lines) schemas vs actual tool input/output shapes, section by section.",
       "category": "docs",
       "priority": "medium",
-      "status": "needs_verification",
+      "status": "partial",
       "implementation": "complete",
-      "verification": "pending",
+      "verification": "verified",
       "acceptance_criteria": [
         "Every documented schema matches the corresponding live tool input/output"
       ],
@@ -4105,10 +4517,26 @@
           "type": "live_api",
           "detail": "Spot checks: triage summary, schedule groups/comparison, forecast codes all consistent with documented shapes",
           "timestamp": "2026-10-19T19:08:40+05:30"
+        },
+        {
+          "type": "source",
+          "path": "docs/data-contract.md",
+          "detail": "Section-by-section conformance pass performed in this audit: 12 contract sections were diffed against live tool output (documented field names vs the keys actually returned). 11 sections conform completely: §4 simulate_disruption, §5 find_alternative_dependencies, §6 evaluate_recovery_plan, §7 rebalance_workload (on demo-release-plan-staffed, which carries staffing data), §8 analyze_blocked_tasks, §10 recalculate_delivery_forecast, §11 validate_hard_constraints, §12/§13 compare_recovery_options, §14 find_substitute_options, §14.1 generate_recovery_schedule.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "ONE GENUINE MISMATCH: §1 documents a top-level 'resources' field in the get_plan_state output ('no (Phase 5)'), but get_plan_state never returns it — not even for demo-release-plan-staffed, whose scenario defines resources. Live keys are scenario_id, plan_id, version, status, entities, dependencies, constraints, disruptions. The staffing data is only reachable through rebalance_workload, which renames the resource key to 'resource_id' (§7 documents that rename in its own result table).",
+          "timestamp": "2026-10-22T20:40:00+05:30"
+        },
+        {
+          "type": "live_api",
+          "detail": "Note: §7's 'Resource schema' (id/name/capacity) describes the SCENARIO-level shape, while the tool output uses resource_id — the contract is internally consistent, but the scenario-level resource schema has no live wire representation.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "Run a full section-by-section conformance pass (or record spot-check scope as accepted)."
+      "next_action": "Either emit 'resources' from get_plan_state or amend §1 to state that the plan-state payload omits resources; align the §7 resource key naming note."
     },
     {
       "id": "DOC-04",
@@ -4116,7 +4544,7 @@
       "description": "DEMO_RUNBOOK.md commands and expected outputs match reality.",
       "category": "docs",
       "priority": "high",
-      "status": "complete",
+      "status": "partial",
       "implementation": "complete",
       "verification": "verified",
       "acceptance_criteria": [
@@ -4134,10 +4562,15 @@
           "type": "source",
           "path": "DEMO_RUNBOOK.md",
           "detail": "untracked new file; accurate"
+        },
+        {
+          "type": "live_api",
+          "detail": "The runbook's numbers still match live output, but the INVOCATION FORM is wrong: lines 30/53/67/101 use 'python -m rippleback up|doctor|seed-sample|sync' and there is no src/rippleback/__main__.py ('No module named rippleback.__main__'). The console script has every subcommand and works: 'rippleback up', 'rippleback doctor', 'rippleback seed-sample', 'rippleback sync', 'rippleback import-substitutes', 'rippleback version'.",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [],
-      "next_action": "None — verified."
+      "next_action": "Replace 'python -m rippleback X' with 'rippleback X' in DEMO_RUNBOOK.md and docs/INTEGRATIONS.md."
     },
     {
       "id": "DOC-05",
@@ -4157,20 +4590,25 @@
           "type": "source",
           "path": "frontend/src/api/mcpClient.ts header comment",
           "detail": "claims '/api/mcp forwards to the Python MCP server at 127.0.0.1:8000'; actual flow is Vite /api -> adapter :8001 -> MCP :8000 (the comment also still mentions a 'production Express/FastAPI adapter' as future work though the adapter exists)"
+        },
+        {
+          "type": "source",
+          "path": "frontend/src/api/mcpClient.ts lines 1-12",
+          "detail": "Header comment still describes forwarding straight to :8000 and an Express/FastAPI adapter as future work."
         }
       ],
       "dependencies": [],
-      "next_action": "Update the file header comment (5 lines)."
+      "next_action": "Update the five-line file header to the real Vite -> adapter :8001 -> MCP :8000 flow."
     },
     {
       "id": "REPO-01",
       "name": "Commit pending working-tree changes",
-      "description": "55 changed/untracked files (frontend, backend, tests, docs, progress file) are uncommitted since a71e319; work is at risk.",
+      "description": "The previously uncommitted work has been committed by the repository owner; this audit made no commits, pushes, branches, resets or cleans.",
       "category": "repo",
       "priority": "high",
-      "status": "blocked",
-      "implementation": "not_started",
-      "verification": "not_applicable",
+      "status": "complete",
+      "implementation": "complete",
+      "verification": "verified",
       "acceptance_criteria": [
         "Changes reviewed and committed with authorization (or explicitly deferred with a note)"
       ],
@@ -4185,40 +4623,62 @@
           "type": "source",
           "path": "git log -1",
           "detail": "a71e319 'frontend first look' 2026-10-18"
+        },
+        {
+          "type": "source",
+          "path": "git log --oneline",
+          "detail": "Resolved since the previous audit: 51c0cc8 'changed endpoints' and b7f47fa 'finals' now contain the previously uncommitted work — 106 files changed, 26810 insertions, 2569 deletions versus a71e319. This audit created no commit, branch, tag, push, reset or stash."
+        },
+        {
+          "type": "command",
+          "command": "git status --porcelain",
+          "exit_code": 0,
+          "result": "0 entries before, during and after the audit — the only file this audit touched is project_progress.json, and its pre-edit backup was kept outside the repository",
+          "timestamp": "2026-10-22T20:40:00+05:30"
         }
       ],
       "dependencies": [
         "User authorization required"
       ],
-      "next_action": "Request explicit authorization to commit, then commit in logical groups (this audit did NOT commit or push)."
+      "next_action": "None — the working tree is clean and the work is committed at b7f47fa."
     }
   ],
   "release_readiness": {
-    "status": "demo_ready_for_readonly_workflows__not_release_complete",
+    "status": "functionally_working__not_verified_for_release",
+    "verdict": "FUNCTIONALLY WORKING, NOT VERIFIED FOR RELEASE",
     "verified": [
-      "3-process startup",
-      "live tool registry (11)",
-      "full disruption->triage->alternatives->compare->schedule workflow",
-      "error paths",
+      "3-process startup (MCP server, adapter, Vite)",
+      "live tool registry (17 = 12 read-only + 5 write)",
+      "full disruption -> triage -> alternatives -> compare -> schedule -> review workflow",
+      "error paths (injected 503 -> honest error state -> recovery)",
       "offline behavior",
-      "read-only guarantee",
-      "backend test suite",
-      "frontend build/type/lint"
+      "read-only guarantee for the 12 analysis tools",
+      "commit workflow (dry-run -> confirm token -> commit, 409 concurrency, idempotent replay)",
+      "backend test suite (659 passed)",
+      "frontend build/type/lint",
+      "browser walkthrough of all 9 views at 5 widths"
     ],
     "not_verified": [
-      "any browser-rendered page",
-      "responsive layouts at 5 widths",
-      "UI interactions",
-      "Bedrock provider live call"
+      "PRD compliance (the PRD document is absent — no requirement was invented)",
+      "Bedrock provider live call (no AWS credentials)",
+      "PM provider sync (no PM provider configured)",
+      "PM write-back (status stays local_only)",
+      "named human approval, post-apply verification and applied-vs-failed reporting"
+    ],
+    "open_defects_preventing_release": [
+      "MCP server write tools ignore RIPPLEBACK_API_KEY (D11)",
+      "POST /api/substitutes/import bypasses the read-only write gate (D10)",
+      "header scenario dropdown is not mouse-clickable (D1)",
+      "MCP Inspector call log is doubled with duplicate React keys (D2/D3)",
+      "failed simulation leaves a stale SIMULATED state (D19)",
+      "README / frontend README / DEMO_RUNBOOK / DECISIONS.md contain stale claims (D12-D16)"
     ],
     "blocked": [
-      "PRD absent -> strict requirements audit",
-      "write-side scope decision",
-      "browser unavailable -> visual QA"
+      "PRD absent -> strict requirements audit and write-side scope sign-off"
     ]
   },
   "known_limitations": [
-    "Read-only by design: no commit/apply/approval tool exists; scope decision pending (PRD-02).",
+    "A write path now exists and was verified live (dry-run -> confirm token -> commit, optimistic concurrency, idempotent replay, reassignment, audit trail), but there is no named human approver, no post-apply verification, no applied-vs-failed reporting and no PM write-back (commit status stays local_only); the PRD scope decision is still pending (PRD-02).",
     "No calendar scheduling: relative duration_units only (documented scope, PRD-04).",
     "Four fixed in-process fixtures; no persistence (documented scope, PRD-03).",
     "No auth; localhost only (documented scope, PRD-05).",
@@ -4227,7 +4687,17 @@
     "No frontend test runner configured (FE-18, TEST-11).",
     "Assistant offline reply keeps default intent label 'help' (cosmetic).",
     "Bundle 893 kB with vite chunk-size warning (non-blocking).",
-    "Browser-dependent verification entirely outstanding (TEST-12/13, UI-04/13/14)."
+    "Browser-dependent verification was RESOLVED in the 2026-10-22 audit (all 9 views at 5 widths, the full disruption -> triage -> options -> schedule -> review workflow, an injected error state and the assistant round-trip, all observed in headless Chromium). What remains open is the absence of a frontend unit-test runner (FE-18/TEST-11).",
+    "DEFECT (security, high): the MCP server's 5 write tools ignore RIPPLEBACK_API_KEY — an unauthenticated tools/call can mutate the plan (reproduced live: record_disruption without a key returned 200 and persisted a disruption while the adapter returned 403).",
+    "DEFECT (security, high): POST /api/substitutes/import is not covered by the write gate — it wrote a row into a stack running with RIPPLEBACK_WRITES_ENABLED=false.",
+    "DEFECT (frontend, medium): the header scenario dropdown is not mouse-clickable — options 1-3 are covered by main content; only a synthetic click switches scenarios.",
+    "DEFECT (frontend, medium): the MCP Inspector call log is doubled (pending + completed entries share an id) and produces duplicate React keys; the session counter overstates real calls 2x.",
+    "DEFECT (frontend, low): a failed simulation leaves the optimistic SIMULATED state on screen.",
+    "DEFECT (assistant, low): three intent gaps — 'validate the hard constraints' routes to help, the compare_recovery_options intent never calls find_alternative_dependencies, and tool_calls_made is under-reported to 0 on several early-return paths.",
+    "DEFECT (adapter, low): POST /api/sync returns HTTP 200 {'ok':true} while the inner report is ok:false, and /api/substitutes/import returns 500 for client input errors.",
+    "DEFECT (docs, medium): README §1/§16, frontend/README.md, DEMO_RUNBOOK.md, docs/DECISIONS.md, the server docstring and the mcpClient header still describe the pre-write-path system.",
+    "DEFECT (docs, low): the data contract documents a get_plan_state 'resources' field that is never returned.",
+    "No frontend unit-test runner — the UI is covered only by this audit's browser pass."
   ],
   "blockers": [
     {
@@ -4238,29 +4708,30 @@
         "PRD-02"
       ],
       "description": "PRD document is not in the repository: strict requirements audit and write-side scope determination cannot be completed.",
-      "needed": "Provide the PRD (or requirement list) and a product decision on approval/commit workflow."
+      "needed": "Provide the PRD (or requirement list) and a product decision on approval/commit scope.",
+      "status": "open"
     },
     {
       "id": "B2",
       "severity": "high",
       "task_ids": [
-        "TEST-12",
-        "TEST-13",
-        "UI-04",
-        "UI-13",
-        "UI-14"
+        "MCP-14",
+        "BE-19"
       ],
-      "description": "No desktop browser connected to the session: no page can be rendered, interacted with, or screenshotted.",
-      "needed": "Connect a desktop browser (or run a manual walkthrough) to complete visual/functional UI verification."
+      "description": "Two write-gate bypasses are open: the MCP server ignores RIPPLEBACK_API_KEY, and /api/substitutes/import is not covered by the write gate.",
+      "needed": "Enforce the key inside the MCP write tools and apply write_guard_reason to every mutating adapter route.",
+      "status": "open"
     },
     {
       "id": "B3",
-      "severity": "high",
+      "severity": "medium",
       "task_ids": [
-        "REPO-01"
+        "FE-13",
+        "UI-05"
       ],
-      "description": "55 uncommitted file changes since a71e319 — significant work at risk.",
-      "needed": "Explicit authorization to commit (audit did not commit)."
+      "description": "The header scenario dropdown is not mouse-clickable (options 1-3 are covered by main content), so a user cannot switch scenarios with the pointer.",
+      "needed": "Give the dropdown an explicit stacking context above main, then re-run the mouse-driven switch.",
+      "status": "open"
     },
     {
       "id": "B4",
@@ -4270,7 +4741,8 @@
         "TEST-11"
       ],
       "description": "No frontend automated test runner; frontend test coverage cannot be claimed.",
-      "needed": "Scope decision: add Vitest or record tests as out of scope."
+      "needed": "Scope decision: add Vitest or record tests as out of scope.",
+      "status": "open"
     },
     {
       "id": "B5",
@@ -4279,16 +4751,67 @@
         "ASST-11"
       ],
       "description": "Bedrock provider requires AWS credentials to verify.",
-      "needed": "Credentials + model id, or mark out of scope."
+      "needed": "Credentials + model id, or mark out of scope.",
+      "status": "open"
+    },
+    {
+      "id": "B6",
+      "severity": "low",
+      "task_ids": [
+        "DEMO-17",
+        "DOC-01",
+        "DOC-02",
+        "DOC-04",
+        "DOC-05"
+      ],
+      "description": "Documentation still describes the pre-write-path system (README, frontend README, runbook invocation form, DECISIONS.md, server docstring, client header).",
+      "needed": "One documentation pass over the six stale locations.",
+      "status": "open"
+    },
+    {
+      "id": "B7",
+      "severity": "low",
+      "task_ids": [
+        "FE-09",
+        "UI-11"
+      ],
+      "description": "MCP Inspector call log is doubled and raises duplicate React keys.",
+      "needed": "Unique call ids end to end (client emit + inspector key).",
+      "status": "open"
+    },
+    {
+      "id": "B8",
+      "severity": "info",
+      "task_ids": [
+        "REPO-01"
+      ],
+      "description": "RESOLVED in this audit: the previously uncommitted work is committed at b7f47fa and the tree is clean.",
+      "needed": "None.",
+      "status": "resolved"
+    },
+    {
+      "id": "B9",
+      "severity": "info",
+      "task_ids": [
+        "TEST-12",
+        "TEST-13",
+        "UI-04",
+        "UI-13",
+        "UI-14"
+      ],
+      "description": "RESOLVED in this audit: a browser was available (headless Chromium via Playwright) and every view, width and interaction was verified with screenshots.",
+      "needed": "None.",
+      "status": "resolved"
     }
   ],
   "next_recommended_actions": [
-    "1. Provide the PRD (unblocks PRD-01/PRD-02 — the only critical blocker to a compliance claim).",
-    "2. Connect a desktop browser and run the visual/responsive pass (unblocks 8 tasks: TEST-12, TEST-13, UI-04, UI-13, UI-14 + pending FE/UI pages).",
-    "3. Authorize a commit of the 55 pending changes in logical groups (REPO-01) — work is at risk until then.",
-    "4. Fix stale docs: README §1/§5/§16/§19, frontend/README.md architecture, mcpClient.ts header (DOC-01/02/05, DEMO-17).",
-    "5. Decide frontend test scope (FE-18/TEST-11) and the commit/approval product question (PRD-02).",
-    "6. Low priority: page title (UI-15), bundle code-splitting (FE-15 note), Bedrock live check (ASST-11), data-contract section audit (DOC-03)."
+    "1. Close the two write-gate bypasses (B2): enforce RIPPLEBACK_API_KEY inside the MCP server's 5 write tools and apply write_guard_reason to /api/substitutes/import and /api/sync.",
+    "2. Provide the PRD (B1) — the only critical blocker to a compliance or submission claim.",
+    "3. Fix the header dropdown stacking (B3) and the doubled MCP Inspector call log (B7); both are small, user-visible and demo-relevant.",
+    "4. Reconcile the documentation (B6): README §1/§5/§16/§19, frontend/README.md, DEMO_RUNBOOK 'python -m rippleback' -> 'rippleback', docs/DECISIONS.md, server.py docstring, mcpClient.ts header, data-contract §1 'resources'.",
+    "5. Clear the assistant gaps (ASST-01/03/08): constraint phrasings, compare_recovery_options tool chain, tool_calls_made on early returns.",
+    "6. Decide frontend test scope (FE-18/TEST-11) and the PRD approval/commit scope (PRD-02).",
+    "7. Low priority: page title (UI-15), bundle code-splitting (FE-15), Bedrock live check (ASST-11), schedule copy fix ('Missing durations for: No duration is declared for 6 entities')."
   ],
   "agents": {
     "person_3_scheduler": {
@@ -4368,129 +4891,102 @@
       "assistant_client_adapter": "60/60 passed"
     },
     "latest_backend_tests": {
-      "timestamp": "2025-10-19T08:38:00-07:00",
+      "timestamp": "2026-10-22T20:40:00+05:30",
       "command": ".venv/bin/python -m pytest tests/ -q",
       "exit_code": 0,
-      "summary": "504 passed in 3.74s (full backend suite, includes unit, integration, and live-server MCP tests)"
+      "summary": "659 passed in 8.39s (full backend suite: unit, integration, and live-server MCP tests)"
     },
     "latest_frontend_tests": {
-      "timestamp": "2025-10-19T08:38:00-07:00",
+      "timestamp": "2026-10-22T20:40:00+05:30",
       "note": "No frontend test runner is configured in frontend/package.json (no vitest/jest script).",
       "type_check": "npx tsc -b passed (exit 0)",
-      "lint": "npx oxlint passed (exit 0, 1 pre-existing react/set-state-in-effect warning in MCPInspector.tsx)"
+      "lint": "npx oxlint src passed (exit 0, no diagnostics)",
+      "browser_functional": "Headless Chromium (Playwright) drove the real app through all 9 views, the full disruption workflow, an injected error and recovery — 8 unique console warnings, all React duplicate-key warnings (D2/D3)"
     },
     "production_build": {
-      "timestamp": "2025-10-19T08:05:00-07:00",
+      "timestamp": "2026-10-22T20:40:00+05:30",
       "command": "cd frontend && npm run build",
       "exit_code": 0,
-      "summary": "tsc -b && vite build succeeded; dist/ emitted",
+      "summary": "tsc -b && vite build succeeded; dist/ emitted (JS 893.81 kB / gzip 251.87 kB, CSS 41.20 kB / gzip 8.23 kB)",
       "warnings": "non-blocking vite chunk-size warning (>500 kB)"
     },
     "demo_readiness": {
-      "timestamp": "2025-10-19T09:15:00-07:00",
+      "timestamp": "2026-10-22T20:40:00+05:30",
       "demo_runbook": "DEMO_RUNBOOK.md",
       "startup_verified": {
         "mcp_server": "http://127.0.0.1:8000/mcp (healthy, responds to initialize)",
-        "adapter": "http://127.0.0.1:8001 (healthy)",
+        "adapter": "http://127.0.0.1:8001 (healthy; GET /api/health -> 17 tools = 12 read-only + 5 write)",
         "vite": "http://localhost:5173 (serves app, proxy /api works)",
-        "proxy_health": "mcp connected, 11 tools, deterministic provider"
+        "proxy_health": "mcp connected, 17 tools (12 read-only + 5 write), deterministic provider",
+        "reverified": "2026-10-22T20:40:00+05:30",
+        "note": "Re-verified in this audit. The 2026-10-19 entry reported eleven tools; the registry now exposes 17 because the 5 write tools were added afterwards."
       },
       "browser_verification": {
-        "performed": false,
-        "method": "Programmatic only (no desktop browser connected)",
+        "performed": true,
+        "method": "Headless Chromium (Playwright, installed outside the repository) against the real Vite dev server at http://localhost:5173 — the session's own browser tool was unavailable (browser.disconnected), but a browser was available.",
         "programmatic_checks": [
-          "all three processes start; ports 8000/8001/5173 free/serving",
-          "proxied health and tools endpoints correct",
-          "assistant chat returns tool trace; schedule/generate_recovery_schedule returns structured results with relative units and simulated=true",
-          "read-only: plan version 1, disruptions [] unchanged",
-          "offline behavior honest (503 on tool, assistant honest when server down, frontend still serves)"
-        ]
+          "all 9 views render at 1440/1280/1024/768/390 with no horizontal overflow",
+          "scenario dropdown opens (options 1-3 are not mouse-clickable — D1)",
+          "disruption preset + severity -> simulate -> triage (Blocked 5 / At Risk 2 / Healthy 2 / Done 1)",
+          "recovery options: 1 feasible / 1 scorable, score -1.00, delta -1 duration_units",
+          "option selection drives Schedule (2 duration_units, Feasible) and Review Plan (Structurally valid)",
+          "injected 503 -> 'Simulation failed' error state -> recovery after the fault is removed",
+          "assistant round-trip with a rendered get_plan_state step trace; history survives navigation",
+          "MCP Inspector: connected, 17 tools, filters, expanded calls, error rows"
+        ],
+        "screenshots": "5 responsive widths + 9 views + dropdown + error state + recovery + assistant + inspector (stored outside the repository)"
       }
     },
     "audit_runs": {
-      "timestamp": "2026-10-19T19:08:40+05:30",
-      "audit_id": "master-audit-2026-10-19",
+      "timestamp": "2026-10-22T20:40:00+05:30",
+      "audit_id": "master-audit-2026-10-22",
       "commands": [
         {
           "command": ".venv/bin/python -m pytest tests/ -q",
           "exit_code": 0,
-          "result": "504 passed in 3.62s (re-run: 504 passed in 3.72s)"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/integration/test_mcp_server.py -q",
-          "exit_code": 0,
-          "result": "41 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
-          "exit_code": 0,
-          "result": "29 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
-          "exit_code": 0,
-          "result": "32 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
-          "exit_code": 0,
-          "result": "18 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_milestone6_integration.py -q",
-          "exit_code": 0,
-          "result": "20 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_forecast.py tests/test_constraints.py tests/test_scoring.py tests/test_comparison.py tests/test_substitute_recovery.py -q",
-          "exit_code": 0,
-          "result": "191 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_triage.py -q",
-          "exit_code": 0,
-          "result": "22 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_graph.py tests/test_critical_path.py -q",
-          "exit_code": 0,
-          "result": "25 passed"
-        },
-        {
-          "command": ".venv/bin/python -m pytest tests/test_impact.py tests/test_recovery.py tests/test_evaluation.py tests/test_workload.py tests/test_scenarios.py -q",
-          "exit_code": 0,
-          "result": "126 passed"
-        },
-        {
-          "command": "cd frontend && npx tsc -b",
-          "exit_code": 0,
-          "result": "no diagnostics"
-        },
-        {
-          "command": "cd frontend && npm run lint",
-          "exit_code": 0,
-          "result": "oxlint 1.88.0, no diagnostics"
+          "result": "659 passed in 8.39s (first run of the audit: 659 passed in 8.54s)"
         },
         {
           "command": "cd frontend && npm run build",
           "exit_code": 0,
-          "result": "tsc -b && vite build; dist/ emitted; chunk-size warning (>500 kB)"
+          "result": "exit 0; dist/ emitted; >500 kB chunk-size warning (non-blocking)"
         },
         {
-          "command": "curl live workflow via http://localhost:5173/api/*",
+          "command": "cd frontend && npx tsc -b",
           "exit_code": 0,
-          "result": "health 11 tools connected; 11/11 tools invoked; 5 error paths verified; read-only re-check passed"
+          "result": "exit 0, no diagnostics"
+        },
+        {
+          "command": "cd frontend && npx oxlint src",
+          "exit_code": 0,
+          "result": "exit 0, no diagnostics"
+        },
+        {
+          "command": "node <audit>/interact5.js … interact10.js (headless Chromium)",
+          "exit_code": 0,
+          "result": "browser walkthrough: responsive widths, error injection, recovery, cross-page consistency, graph interaction, impact filters, option selection, assistant round-trip, dropdown hit-testing"
+        },
+        {
+          "command": ".venv/bin/python <audit>/conformance.py",
+          "exit_code": 0,
+          "result": "data-contract conformance: 12 sections checked, 1 genuine mismatch (§1 resources)"
+        },
+        {
+          "command": ".venv/bin/python <audit>/reverify3.py",
+          "exit_code": 0,
+          "result": "security re-verification: MCP server accepts an unauthenticated write (D11) and /api/substitutes/import writes on the read-only stack (D10)"
+        },
+        {
+          "command": "git status --porcelain",
+          "exit_code": 0,
+          "result": "0 entries (clean tree maintained for the whole audit)"
         }
       ],
-      "browser_verification": {
-        "performed": false,
-        "reason": "browser.tabs.list -> 'No desktop browser is connected to this session' (browser.disconnected)",
-        "impact": "Category UI/UX responsive + visual checks and browser functional tests recorded as blocked (TEST-12, TEST-13, UI-04, UI-13, UI-14)."
-      },
-      "frontend_tests": {
-        "configured": false,
-        "note": "No test runner in frontend/package.json — no frontend test results exist to report."
-      }
+      "not_run": [
+        "live Bedrock inference (no AWS credentials)",
+        "PM provider sync (no PM provider configured)",
+        "PM write-back (RIPPLEBACK_PM_WRITEBACK_ENABLED=false; commit status stays local_only)"
+      ]
     },
     "last_verified_test_results": {
       "timestamp": "2026-10-19T19:08:40+05:30",
@@ -4545,14 +5041,14 @@
     }
   },
   "last_verified_test_results": {
-    "timestamp": "2026-10-19T19:08:40+05:30",
+    "timestamp": "2026-10-22T20:40:00+05:30",
     "backend_full_suite": {
       "command": ".venv/bin/python -m pytest tests/ -q",
       "exit_code": 0,
-      "passed": 504,
+      "passed": 659,
       "failed": 0,
       "skipped": 0,
-      "summary": "504 passed in 3.62s",
+      "summary": "659 passed in 8.39s",
       "current": true
     },
     "integration_mcp": {
@@ -4564,6 +5060,7 @@
       "current": true
     },
     "client_adapter": {
+      "command": ".venv/bin/python -m pytest tests/test_client.py tests/test_adapter.py -q",
       "exit_code": 0,
       "passed": 29,
       "failed": 0,
@@ -4571,6 +5068,7 @@
       "current": true
     },
     "assistant": {
+      "command": ".venv/bin/python -m pytest tests/test_assistant.py -q",
       "exit_code": 0,
       "passed": 32,
       "failed": 0,
@@ -4578,21 +5076,44 @@
       "current": true
     },
     "scheduler": {
+      "command": ".venv/bin/python -m pytest tests/test_scheduler.py -q",
       "exit_code": 0,
       "passed": 18,
       "failed": 0,
       "summary": "18 passed",
       "current": true
     },
-    "engine_suites": {
+    "write_path": {
+      "command": ".venv/bin/python -m pytest tests/test_write_path.py -q",
       "exit_code": 0,
-      "passed": 384,
+      "passed": 34,
       "failed": 0,
-      "summary": "191+20+22+25+126 passed",
+      "summary": "34 passed",
       "current": true
     },
+    "engine_suites": {
+      "exit_code": 0,
+      "passed": 471,
+      "summary": "scenarios 21 + impact 18 + recovery 27 + triage 22 + graph 14 + critical_path 11 + workload 27 + forecast 34 + constraints 42 + scoring 57 + comparison 30 + substitute_recovery 28 + scheduler 18 + milestone6 21 + sync_overlay 12 + metrics_weights 31 + cli 11 + integrations 36 = 471",
+      "current": true
+    },
+    "frontend": {
+      "build": "npm run build -> exit 0 (JS 893.81 kB / gzip 251.87 kB; CSS 41.20 kB)",
+      "type_check": "npx tsc -b -> exit 0",
+      "lint": "npx oxlint src -> exit 0",
+      "unit_tests": "no runner configured — not claimed"
+    },
+    "browser": {
+      "tool": "headless Chromium via Playwright (installed outside the repository)",
+      "views_exercised": 9,
+      "widths_exercised": "1440x900, 1280x800, 1024x768, 768x1024, 390x844",
+      "horizontal_overflow": "none at any width",
+      "console_errors": "8 unique, all React duplicate-key warnings (D2/D3); 0 after a clean load",
+      "defects_found": "D1 dropdown pointer interception, D2/D3 duplicate keys, D19 stale state"
+    },
     "warnings": [
-      "vite chunk-size warning (>500 kB) — non-blocking"
+      "vite chunk-size warning (>500 kB) — non-blocking",
+      "46 + 32 duplicate-key console warnings during the interactive passes (D2/D3)"
     ]
   },
   "acceptance_criteria": {
@@ -4610,7 +5131,7 @@
     "running_application_verified_programmatically": true,
     "startup_scripts_working": true,
     "demo_runbook_created": true,
-    "frontend_visual_verification": false,
+    "frontend_visual_verification": true,
     "prd_commit_feature_implemented": false,
     "master_checklist_created": true,
     "all_tests_re_run_this_audit": true,
@@ -4618,14 +5139,18 @@
     "error_paths_verified": true,
     "offline_behavior_verified": true,
     "json_progress_file_validated": true,
-    "browser_functional_testing": false,
-    "strict_prd_audit_completed": false
+    "browser_functional_testing": true,
+    "strict_prd_audit_completed": false,
+    "running_application_verified_in_browser": true,
+    "write_path_verified_live": true,
+    "read_only_guarantee_verified_for_analysis_tools": true,
+    "release_readiness_certified": false
   },
   "unresolved_issues": [
     {
       "id": "prd_commit_tool_missing",
       "severity": "medium",
-      "description": "PRD specifies human approval, commit_recovery_plan, applied-vs-failed reporting — not implemented (read-only by design; README §16 'No writes'). Product-level decision needed.",
+      "description": "The PRD-specified commit feature set is only partly built. A write path now exists and was verified live (dry-run -> confirm token -> commit, optimistic concurrency, idempotent replay, reassignment, audit trail), but there is no named human approver, no post-apply verification, no applied-vs-failed reporting and no PM write-back (commit status stays local_only). The PRD itself is still absent, so the requirement set cannot be confirmed. Product-level decision needed.",
       "owner": "product/team_decision",
       "status": "open"
     },
@@ -4641,7 +5166,8 @@
       "severity": "low",
       "description": "No desktop browser connected to this session (re-confirmed by master audit via browser.disconnected). All page rendering, interaction, responsive, and screenshot checks remain manual — tracked as TEST-12/TEST-13/UI-04/UI-13/UI-14.",
       "owner": "qa/manual",
-      "status": "open"
+      "status": "resolved",
+      "resolution": "RESOLVED in the 2026-10-22 audit: a browser was available (headless Chromium via Playwright); all 9 views, 5 widths, interactions and screenshots were verified."
     },
     {
       "id": "frontend_test_runner_missing",
@@ -4676,7 +5202,8 @@
       "severity": "high",
       "description": "55 modified/untracked files since a71e319 (adapter, client, assistant, scheduler, new frontend views, tests, runbook, progress file) are uncommitted. Risk of loss; commit requires explicit authorization. Tracked as REPO-01.",
       "owner": "user",
-      "status": "open"
+      "status": "resolved",
+      "resolution": "RESOLVED in the 2026-10-22 audit: the work is committed at b7f47fa ('finals'); git status is clean and this audit made no commits."
     },
     {
       "id": "bedrock_unverified",
@@ -4705,6 +5232,108 @@
       "description": "Production bundle 893 kB (>500 kB warning) — consider code-splitting. Non-blocking. Tracked as FE-15 note.",
       "owner": "frontend",
       "status": "open"
+    },
+    {
+      "id": "mcp_write_tools_ignore_api_key",
+      "severity": "high",
+      "description": "The MCP server does not enforce RIPPLEBACK_API_KEY: a tools/call record_disruption with no Authorization header returned HTTP 200 and persisted a disruption (disruptions 3->4, plan_version 7) on the keyed stack, while the adapter rejected the same call with 403. security.write_guard_reason only checks writes_enabled.",
+      "owner": "backend/security",
+      "status": "open",
+      "tracked_as": [
+        "MCP-14",
+        "BE-19",
+        "blocker B2"
+      ]
+    },
+    {
+      "id": "write_gate_bypass_substitute_import",
+      "severity": "high",
+      "description": "POST /api/substitutes/import is not covered by the write gate: on a stack with RIPPLEBACK_WRITES_ENABLED=false it returned 200 and wrote a substitute_catalog row (source='import').",
+      "owner": "backend",
+      "status": "open",
+      "tracked_as": [
+        "MCP-14",
+        "BE-19",
+        "blocker B2"
+      ]
+    },
+    {
+      "id": "scenario_dropdown_pointer_blocked",
+      "severity": "medium",
+      "description": "The header scenario dropdown listbox (absolute z-50 inside a position:relative parent with z-index auto) is painted under the main content: elementFromPoint at the centres of options 1-3 returns main-content elements and a real mouse click on option 1 times out. Only dispatchEvent('click') switches scenarios.",
+      "owner": "frontend",
+      "status": "open",
+      "tracked_as": [
+        "FE-13",
+        "UI-05",
+        "blocker B3"
+      ]
+    },
+    {
+      "id": "mcp_inspector_call_log_doubled",
+      "severity": "medium",
+      "description": "mcpClient pushes the pending and completed entries under the same id; the Inspector seeds its list from the whole log, so the counter reads 2x the real calls (16 shown for 8 real calls) and a phantom RUNNING row is rendered. Duplicate React keys produced 46-32 console warnings.",
+      "owner": "frontend",
+      "status": "open",
+      "tracked_as": [
+        "FE-09",
+        "UI-11",
+        "blocker B7"
+      ]
+    },
+    {
+      "id": "stale_simulated_state_after_failure",
+      "severity": "low",
+      "description": "The disruption is dispatched optimistically before the backend call, so a failed simulation still shows 'Disruption active' and a SIMULATED badge next to the error message.",
+      "owner": "frontend",
+      "status": "open",
+      "tracked_as": [
+        "FE-11",
+        "UI-05"
+      ]
+    },
+    {
+      "id": "assistant_intent_and_counter_gaps",
+      "severity": "low",
+      "description": "Three assistant gaps: 'validate the hard constraints' routes to help instead of validate_hard_constraints; the compare_recovery_options intent never calls find_alternative_dependencies; tool_calls_made is 0 on several early-return paths although a tool call was made.",
+      "owner": "assistant",
+      "status": "open",
+      "tracked_as": [
+        "ASST-01",
+        "ASST-03",
+        "ASST-08"
+      ]
+    },
+    {
+      "id": "sync_false_success_envelope",
+      "severity": "low",
+      "description": "POST /api/sync returns HTTP 200 {'ok':true} while the inner report is ok:false ('no PM provider configured'); /api/substitutes/import returns 500 for client input errors instead of 4xx.",
+      "owner": "backend",
+      "status": "open",
+      "tracked_as": [
+        "MCP-12"
+      ]
+    },
+    {
+      "id": "data_contract_resources_field",
+      "severity": "low",
+      "description": "data-contract.md §1 documents a top-level 'resources' field in the get_plan_state output that the tool never returns, even for the staffed scenario that defines resources.",
+      "owner": "docs",
+      "status": "open",
+      "tracked_as": [
+        "DOC-03"
+      ]
+    },
+    {
+      "id": "runbook_invocation_form",
+      "severity": "low",
+      "description": "DEMO_RUNBOOK.md and docs/INTEGRATIONS.md use 'python -m rippleback <cmd>'; there is no __main__.py, so the working form is the console script 'rippleback <cmd>'.",
+      "owner": "docs",
+      "status": "open",
+      "tracked_as": [
+        "DOC-04",
+        "DEMO-17"
+      ]
     }
   ],
   "decisions": [
@@ -4732,6 +5361,26 @@
       "date": "2026-10-19T19:08:40+05:30",
       "decider": "master_audit",
       "decision": "Master completion audit: 122-task evidence-backed checklist created; all backend suites re-run (504 backend tests pass), full demo workflow executed live through the Vite proxy (11 tools, read-only re-verified), error paths and offline behavior tested. Frontend build/tsc/lint pass. Browser-based visual verification remains blocked (no desktop browser connected). PRD still absent from the repository: strict requirements audit recorded as blocked. Stale README/frontend-README/mcpClient header claims documented as DOC-01/02/05. No commits or pushes were made."
+    },
+    {
+      "date": "2026-10-22T20:40:00+05:30",
+      "decider": "master_audit_2026-10-22",
+      "decision": "Master audit executed with a read-only policy: no application code was modified, no commit/push/branch/reset/clean/stash was performed, the git tree stayed clean (0 entries) throughout, and every DB write went to isolated throwaway SQLite files on three separate stacks (read-only :8000/:8001, write-enabled :8020/:8031, API-keyed :8040/:8041). No external system was contacted and no secret was printed. project_progress.json is the only modified file and its pre-edit backup was kept outside the repository."
+    },
+    {
+      "date": "2026-10-22T20:40:00+05:30",
+      "decider": "master_audit_2026-10-22",
+      "decision": "The session's browser tool was unavailable (browser.disconnected), so the UI was verified with headless Chromium driven by Playwright installed OUTSIDE the repository. A browser was therefore available and every UI claim in this audit is observed behaviour, not inference; the previously blocked tasks (UI-04, UI-13, UI-14, TEST-12, TEST-13) are marked verified."
+    },
+    {
+      "date": "2026-10-22T20:40:00+05:30",
+      "decider": "master_audit_2026-10-22",
+      "decision": "The tracker still contained the pre-write-path world view ('11 tools', 'no write tool registered', 'no frontend'). Those descriptions were corrected against the live system and the affected tasks (BE-19, MCP-12, MCP-14, PRD-02) were re-scored honestly rather than being left to claim a guarantee the code no longer provides. No task was added, removed or renumbered: all 122 IDs are preserved."
+    },
+    {
+      "date": "2026-10-22T20:40:00+05:30",
+      "decider": "master_audit_2026-10-22",
+      "decision": "Verdict: FUNCTIONALLY WORKING, NOT VERIFIED FOR RELEASE. The system starts, serves 17 tools, completes the full analysis and commit workflows and renders a working dashboard (659 tests green, browser-verified), but two write-gate bypasses, a pointer-blocking dropdown, a doubled inspector log and stale documentation are open, and the PRD is absent so release/PRD compliance cannot be certified."
     }
   ],
   "change_log": [
@@ -4761,10 +5410,56 @@
       "files_changed": [
         "project_progress.json"
       ]
+    },
+    {
+      "timestamp": "2026-10-22T20:40:00+05:30",
+      "event": "master_completion_audit_2026_10_22",
+      "description": "Full audit executed: 122 tasks re-scored against live evidence; 659 backend tests re-run; all 14 adapter routes and 17 MCP tools exercised; commit workflow, idempotency, concurrency and auth matrix verified on isolated stacks; headless-Chromium walkthrough of all 9 views at 5 widths; data-contract conformance pass; documentation reconciliation. 19 defects recorded with live evidence. project_progress.json updated (only file changed).",
+      "files_changed": [
+        "project_progress.json"
+      ]
+    },
+    {
+      "timestamp": "2026-10-22T20:40:00+05:30",
+      "event": "documentation_staleness_expanded",
+      "description": "README §1/§16, frontend/README.md, DEMO_RUNBOOK.md, docs/DECISIONS.md, the server docstring and the mcpClient header were re-checked against the live system and confirmed stale; DOC-01/02/04/05 and DEMO-17 remain partial and DOC-03 was downgraded to partial after a 12-section conformance pass found one genuine mismatch.",
+      "files_changed": [
+        "project_progress.json"
+      ]
     }
   ],
   "files_changed_this_phase": [
     "project_progress.json"
   ],
-  "next_recommended_action": "Demo-ready for read-only workflows (verified live end-to-end). To finish: provide the PRD, connect a browser for visual QA, and authorize committing the 55 pending changes."
+  "next_recommended_action": "Functionally working and browser-verified, but not release-verified. Next: close the two write-gate bypasses (MCP server key enforcement, /api/substitutes/import gating), obtain the PRD, and reconcile the stale documentation — then re-run this audit to certify release.",
+  "audit_history": [
+    {
+      "id": "master-audit-2026-10-19",
+      "timestamp": "2026-10-19T19:08:40+05:30",
+      "scope": "Master project completion audit (backend, MCP, assistant, frontend, UI/UX, testing, PRD, demo).",
+      "evidence_hierarchy": [
+        "source code and contracts",
+        "automated tests re-run in this audit",
+        "live integration/API tests",
+        "documentation",
+        "previous progress file",
+        "prior claims"
+      ],
+      "phases": {
+        "phase1_inspect": "complete — repo, README, data contract, progress file (v1), git tree read",
+        "phase2_checklist": "complete — 122 tasks with stable IDs and acceptance criteria",
+        "phase3_implementation_review": "complete for backend/MCP/assistant/frontend source; UI visual review blocked",
+        "phase4_verify": "complete — all test suites, build, tsc, lint, live workflow, error paths, offline path",
+        "phase5_ui_inspect": "blocked — no desktop browser connected",
+        "phase6_requirements": "blocked — PRD absent from repository",
+        "phase7_calculate": "complete — metrics computed from checklist",
+        "phase8_progress": "complete — project_progress.json updated (history preserved)",
+        "phase9_report": "complete — final report produced in session"
+      },
+      "files_modified_by_audit": [
+        "project_progress.json"
+      ],
+      "commits_or_pushes_made": "none"
+    }
+  ]
 }

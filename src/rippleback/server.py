@@ -40,6 +40,7 @@ from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.mcpserver import Context
 
 from rippleback import repository
 from rippleback.commit import (
@@ -50,6 +51,7 @@ from rippleback.commit import (
     record_disruption as _record_disruption,
     resolve_disruption as _resolve_disruption,
 )
+from rippleback.security import write_guard_reason
 from rippleback.comparison import compare_recovery_options as _compare
 from rippleback.constraints import (
     ConstraintError,
@@ -625,6 +627,7 @@ def dry_run_recovery_plan(
     option_id: str | None = None,
     changes: list[dict[str, Any]] | None = None,
     kind: str = "recovery",
+    ctx: Context = None,
 ) -> dict[str, Any]:
     """Return a dry-run report: diff, changes, and a confirm token.
 
@@ -632,6 +635,17 @@ def dry_run_recovery_plan(
     Raises ``ToolError`` for unknown scenarios, stale versions, infeasible
     change sets, and malformed inputs.
     """
+    headers = None
+    try:
+        if ctx is not None and hasattr(ctx, "request_context") and ctx.request_context:
+            req = getattr(ctx.request_context, "request", None)
+            if req is not None and hasattr(req, "headers"):
+                headers = req.headers
+    except Exception:
+        headers = None
+    reason = write_guard_reason("dry_run_recovery_plan", is_write=True, headers=headers)
+    if reason is not None:
+        raise ToolError(reason)
     try:
         return _dry_run(
             scenario_id,
@@ -670,8 +684,20 @@ def record_disruption(
     delay_minutes: float | None = None,
     idempotency_key: str = "",
     actor: str | None = None,
+    ctx: Context = None,
 ) -> dict[str, Any]:
     """Record a real, committed disruption. Raises ``ToolError`` on refusal."""
+    headers = None
+    try:
+        if ctx is not None and hasattr(ctx, "request_context") and ctx.request_context:
+            req = getattr(ctx.request_context, "request", None)
+            if req is not None and hasattr(req, "headers"):
+                headers = req.headers
+    except Exception:
+        headers = None
+    reason_guard = write_guard_reason("record_disruption", is_write=True, headers=headers)
+    if reason_guard is not None:
+        raise ToolError(reason_guard)
     try:
         return _record_disruption(
             scenario_id,
@@ -702,8 +728,20 @@ def resolve_disruption(
     disruption_id: int,
     idempotency_key: str = "",
     actor: str | None = None,
+    ctx: Context = None,
 ) -> dict[str, Any]:
     """Resolve a recorded disruption. Raises ``ToolError`` on refusal."""
+    headers = None
+    try:
+        if ctx is not None and hasattr(ctx, "request_context") and ctx.request_context:
+            req = getattr(ctx.request_context, "request", None)
+            if req is not None and hasattr(req, "headers"):
+                headers = req.headers
+    except Exception:
+        headers = None
+    reason_guard = write_guard_reason("resolve_disruption", is_write=True, headers=headers)
+    if reason_guard is not None:
+        raise ToolError(reason_guard)
     try:
         return _resolve_disruption(
             disruption_id, idempotency_key=idempotency_key, actor=actor
@@ -739,8 +777,20 @@ def commit_recovery_plan(
     changes: list[dict[str, Any]] | None = None,
     idempotency_key: str = "",
     actor: str | None = None,
+    ctx: Context = None,
 ) -> dict[str, Any]:
     """Commit a confirmed recovery. Raises ``ToolError`` when refused."""
+    headers = None
+    try:
+        if ctx is not None and hasattr(ctx, "request_context") and ctx.request_context:
+            req = getattr(ctx.request_context, "request", None)
+            if req is not None and hasattr(req, "headers"):
+                headers = req.headers
+    except Exception:
+        headers = None
+    reason_guard = write_guard_reason("commit_recovery_plan", is_write=True, headers=headers)
+    if reason_guard is not None:
+        raise ToolError(reason_guard)
     try:
         return _commit_recovery(
             scenario_id,
@@ -776,8 +826,20 @@ def commit_reassignment(
     changes: list[dict[str, Any]],
     idempotency_key: str = "",
     actor: str | None = None,
+    ctx: Context = None,
 ) -> dict[str, Any]:
     """Commit a confirmed reassignment. Raises ``ToolError`` when refused."""
+    headers = None
+    try:
+        if ctx is not None and hasattr(ctx, "request_context") and ctx.request_context:
+            req = getattr(ctx.request_context, "request", None)
+            if req is not None and hasattr(req, "headers"):
+                headers = req.headers
+    except Exception:
+        headers = None
+    reason_guard = write_guard_reason("commit_reassignment", is_write=True, headers=headers)
+    if reason_guard is not None:
+        raise ToolError(reason_guard)
     try:
         return _commit_reassignment(
             scenario_id,
